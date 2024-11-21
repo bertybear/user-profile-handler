@@ -139,6 +139,7 @@ Resources:
       Name: !Sub ${ProjectName}-${ServiceName}-${Env}
       ProtocolType: HTTP
       CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
+      Target: !GetAtt Lambda.Arn
 
   ApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
