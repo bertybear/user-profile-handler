@@ -1,0 +1,51 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure environment variables
+        run: |
+          PROJECT_NAME="user-profile-handler"
+          BUILD_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          LAMBDA_ARCHIVE_FILENAME="$PROJECT_NAME-$BUILD_TIMESTAMP.zip"
+          
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+          echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
+          echo "LAMBDA_ARCHIVE_FILENAME=$LAMBDA_ARCHIVE_FILENAME" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Lambda archive
+        run: |
+          cd src
+          mkdir ../build
+          zip -r "../build/$LAMBDA_ARCHIVE_FILENAME" .
+
+      - name: Upload Lambda archive
+        run: |
+          aws --region="eu-west-2" s3 cp "build/$LAMBDA_ARCHIVE_FILENAME" "s3://bertie-lambda-source/$LAMBDA_ARCHIVE_FILENAME"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN:  ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Deploy DynamoDb Cloudformation Stack
+        run: |
+          aws --region="eu-west-2" cloudformation deploy \
+          --stack-name="${{ github.event.repository.name }}" \
+          --template-file=".pipeline/cloudformation/template.yml" \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides CodeBucket=bertie-lambda-source CodeFile="$LAMBDA_ARCHIVE_FILENAME"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN:  ${{ secrets.AWS_SESSION_TOKEN }}
