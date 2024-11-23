@@ -118,6 +118,8 @@ Resources:
       Role: !GetAtt IamRoleLambda.Arn
       MemorySize: 128
       Timeout: 15
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-jwt:1
       Environment:
         Variables:
           ENV: !Ref Env
