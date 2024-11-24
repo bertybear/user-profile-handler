@@ -84,7 +84,7 @@ Resources:
             Action:
               - dynamodb:Query
             Resource:
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-users
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
       Roles:
         - !Ref IamRoleLambda
 
