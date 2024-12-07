@@ -137,7 +137,7 @@ Resources:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
         - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-jwt:1
       LoggingConfig:
-        LogGroup: /aws/lambda/${ProjectName}-${ServiceName}-${Env}
+        LogGroup: !Sub "/aws/lambda/${ProjectName}-${ServiceName}-${Env}"
       Environment:
         Variables:
           AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
