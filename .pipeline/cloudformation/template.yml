@@ -5,20 +5,36 @@ Description: ...
 Parameters:
   ProjectName:
     Type: String
-    Default: "bertie-smart-nursery"
   ServiceName:
     Type: String
-    Default: "user-profile-handler"
   Env:
     Type: String
-    Default: "dev"
   CodeBucket:
     Type: String
   CodeFile:
     Type: String
 
 Resources:
-  IamRoleLambda:
+  IamRoleApiLambda:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: ServiceName
+          Value: !Ref ServiceName
+        - Key: Environment
+          Value: !Ref Env
+
+  IamRoleSnsLambda:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -71,7 +87,8 @@ Resources:
             Resource:
               - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-${ServiceName}-${Env}:*
       Roles:
-        - !Ref IamRoleLambda
+        - !Ref IamRoleApiLambda
+        - !Ref IamRoleSnsLambda
 
   IamPolicyDynamoDbTableUsers:
     Type: AWS::IAM::Policy
@@ -86,43 +103,46 @@ Resources:
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
       Roles:
-        - !Ref IamRoleLambda
+        - !Ref IamRoleApiLambda
 
-  IamPolicyInvokeLambda:
+  IamPolicyInvokeApiLambda:
     DependsOn:
       - Lambda
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: IamPolicyInvokeLambda
+      PolicyName: IamPolicyInvokeApiLambda
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Action:
               - lambda:InvokeFunction
-            Resource: !GetAtt Lambda.Arn
+            Resource: !GetAtt LambdaApi.Arn
       Roles:
         - !Ref IamRoleApiGatewayLambdaIntegration
 
-  Lambda:
+  LambdaApi:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${ProjectName}-${ServiceName}-${Env}
-      Handler: lambda_function.lambda_handler
+      Handler: api_lambda_function.lambda_handler
       Architectures:
         - x86_64
       Runtime: python3.12
       CodeUri:
         Bucket: !Ref CodeBucket
         Key: !Ref CodeFile
-      Role: !GetAtt IamRoleLambda.Arn
+      Role: !GetAtt IamRoleApiLambda.Arn
       MemorySize: 128
       Timeout: 15
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
         - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-jwt:1
+      LoggingConfig:
+        LogGroup: /aws/lambda/${ProjectName}-${ServiceName}-${Env}
       Environment:
         Variables:
+          AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
           ENV: !Ref Env
       Tags:
         ProjectName: !Ref ProjectName
@@ -136,51 +156,50 @@ Resources:
       FunctionName: !Ref Lambda
       Principal: apigateway.amazonaws.com
 
-  Api:
-    Type: AWS::ApiGatewayV2::Api
-    Properties:
-      Name: !Sub ${ProjectName}-${ServiceName}-${Env}
-      ProtocolType: HTTP
-      CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
-      Target: !GetAtt Lambda.Arn
+  # Api:
+  #   Type: AWS::ApiGatewayV2::Api
+  #   Properties:
+  #     Name: !Sub ${ProjectName}-${ServiceName}-${Env}
+  #     ProtocolType: HTTP
+  #     CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
+  #     Target: !GetAtt LambdaApi.Arn
 
-  ApiIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref Api
-      IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Lambda.Arn}/invocations
-      PayloadFormatVersion: "2.0"
+  # ApiIntegration:
+  #   Type: AWS::ApiGatewayV2::Integration
+  #   Properties:
+  #     ApiId: !Ref Api
+  #     IntegrationType: AWS_PROXY
+  #     IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaApi.Arn}/invocations
+  #     PayloadFormatVersion: "2.0"
 
-  CognitoJWTAuthorizer:
-    Type: AWS::ApiGatewayV2::Authorizer
-    Properties:
-      Name: !Sub ${ProjectName}-${ServiceName}-${Env}
-      ApiId: !Ref Api
-      AuthorizerType: JWT
-      IdentitySource:
-        - "$request.header.Authorization"
-      IdentityValidationExpression: "^Bearer .+$"
-      JwtConfiguration:
-        Audience:
-          - Fn::ImportValue: !Sub "${ProjectName}-cognito-userpool-client-${Env}"
-        Issuer: !Join
-          - ""
-          - - !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/"
-            - Fn::ImportValue: !Sub "${ProjectName}-${Env}-cognito-userpoolid"
+  # CognitoJWTAuthorizer:
+  #   Type: AWS::ApiGatewayV2::Authorizer
+  #   Properties:
+  #     Name: !Sub ${ProjectName}-${ServiceName}-${Env}
+  #     ApiId: !Ref Api
+  #     AuthorizerType: JWT
+  #     IdentitySource:
+  #       - "$request.header.Authorization"
+  #     IdentityValidationExpression: "^Bearer .+$"
+  #     JwtConfiguration:
+  #       Audience:
+  #         - Fn::ImportValue: !Sub "${ProjectName}-cognito-userpool-client-${Env}"
+  #       Issuer: !Join
+  #         - ""
+  #         - - !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/"
+  #           - Fn::ImportValue: !Sub "${ProjectName}-${Env}-cognito-userpoolid"
 
-  RouteGetUserProfile:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref Api
-      RouteKey: GET /user-profile
-      Target: !Sub integrations/${ApiIntegration}
-      AuthorizationType: JWT
-      AuthorizerId: !Ref CognitoJWTAuthorizer
-
-Outputs:
-  LambdaArn:
-    Description: "User profile handler's function ARN"
-    Value: !GetAtt Lambda.Arn
-    Export:
-      Name: !Sub "${ProjectName}-${ServiceName}-lambda-${Env}"
+  # RouteGetUserProfile:
+  #   Type: AWS::ApiGatewayV2::Route
+  #   Properties:
+  #     ApiId: !Ref Api
+  #     RouteKey: GET /user-profile
+  #     Target: !Sub integrations/${ApiIntegration}
+  #     AuthorizationType: JWT
+  #     AuthorizerId: !Ref CognitoJWTAuthorizer
+# Outputs:
+#   LambdaArn:
+#     Description: "User profile handler's function ARN"
+#     Value: !GetAtt Lambda.Arn
+#     Export:
+#       Name: !Sub "${ProjectName}-${ServiceName}-lambda-${Env}"
