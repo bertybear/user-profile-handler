@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ProjectName:
+    Type: String
+  ServiceName:
+    Type: String
+  Env:
+    Type: String
+
+Resources:
+  DynamoDbTableUserProfiles:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${Env}-${ProjectName}-user-profiles
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+        - AttributeName: first_name
+          AttributeType: S
+        - AttributeName: last_name
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: !Sub ${Env}-${ProjectName}-index-user-profile
+          KeySchema:
+            - AttributeName: first_name
+              KeyType: HASH
+            - AttributeName: last_name
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
