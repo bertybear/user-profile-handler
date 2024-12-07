@@ -15,7 +15,7 @@ Parameters:
     Type: String
 
 Resources:
-  IamRoleApiLambda:
+  IamRoleLambda:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -26,44 +26,6 @@ Resources:
             Principal:
               Service:
                 - lambda.amazonaws.com
-      Tags:
-        - Key: ProjectName
-          Value: !Ref ProjectName
-        - Key: ServiceName
-          Value: !Ref ServiceName
-        - Key: Environment
-          Value: !Ref Env
-
-  IamRoleSnsLambda:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action: sts:AssumeRole
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Tags:
-        - Key: ProjectName
-          Value: !Ref ProjectName
-        - Key: ServiceName
-          Value: !Ref ServiceName
-        - Key: Environment
-          Value: !Ref Env
-
-  IamRoleApiGatewayLambdaIntegration:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action: sts:AssumeRole
-            Principal:
-              Service:
-                - apigateway.amazonaws.com
       Tags:
         - Key: ProjectName
           Value: !Ref ProjectName
@@ -87,8 +49,7 @@ Resources:
             Resource:
               - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-${ServiceName}-${Env}:*
       Roles:
-        - !Ref IamRoleApiLambda
-        - !Ref IamRoleSnsLambda
+        - !Ref IamRoleLambda
 
   IamPolicyDynamoDbTableUsers:
     Type: AWS::IAM::Policy
@@ -99,43 +60,29 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - dynamodb:Query
+              - dynamodb:GetItem
+              - dynamodb:QueryItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
       Roles:
-        - !Ref IamRoleApiLambda
+        - !Ref IamRoleLambda
 
-  IamPolicyInvokeApiLambda:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: IamPolicyInvokeApiLambda
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - lambda:InvokeFunction
-            Resource: !GetAtt LambdaApi.Arn
-      Roles:
-        - !Ref IamRoleApiGatewayLambdaIntegration
-
-  LambdaApi:
+  Lambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${ProjectName}-${ServiceName}-${Env}
-      Handler: api_lambda_function.lambda_handler
+      FunctionName: !Sub ${ProjectName}-sns-${ServiceName}-${Env}
+      Handler: sns_lambda_function.lambda_handler
       Architectures:
         - x86_64
       Runtime: python3.12
       CodeUri:
         Bucket: !Ref CodeBucket
         Key: !Ref CodeFile
-      Role: !GetAtt IamRoleApiLambda.Arn
+      Role: !GetAtt IamRoleLambda.Arn
       MemorySize: 128
       Timeout: 15
-      Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
-        # - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-jwt:1
       LoggingConfig:
         LogGroup: !Sub "/aws/lambda/${ProjectName}-${ServiceName}-${Env}"
       Environment:
@@ -147,12 +94,12 @@ Resources:
         ServiceName: !Ref ServiceName
         Environment: !Ref Env
 
-  LambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref LambdaApi
-      Principal: apigateway.amazonaws.com
+  # LambdaPermission:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     FunctionName: !Ref LambdaApi
+  #     Principal: sns.amazonaws.com
 
   # Api:
   #   Type: AWS::ApiGatewayV2::Api
