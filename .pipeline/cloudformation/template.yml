@@ -151,7 +151,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref Lambda
+      FunctionName: !Ref LambdaApi
       Principal: apigateway.amazonaws.com
 
   # Api:
