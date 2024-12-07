@@ -106,8 +106,6 @@ Resources:
         - !Ref IamRoleApiLambda
 
   IamPolicyInvokeApiLambda:
-    DependsOn:
-      - Lambda
     Type: AWS::IAM::Policy
     Properties:
       PolicyName: IamPolicyInvokeApiLambda
