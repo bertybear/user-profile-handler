@@ -14,6 +14,7 @@ class LambdaHandler:
 
     def handle_event(self, event: Dict[str, object], context):
         print("Hello world")
+        print(event)
 
 def lambda_handler(event, context):
     try:

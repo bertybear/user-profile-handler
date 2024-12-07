@@ -95,12 +95,20 @@ Resources:
         ServiceName: !Ref ServiceName
         Environment: !Ref Env
 
-  # LambdaPermission:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: !Ref LambdaApi
-  #     Principal: sns.amazonaws.com
+  SnsSubscriptionLambda:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-user-change-event-${Env}"
+      Protocol: lambda
+      Endpoint: !GetAtt Lambda.Arn
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Lambda
+      Principal: sns.amazonaws.com
+      SourceArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-user-change-event-${Env}"
 
   # Api:
   #   Type: AWS::ApiGatewayV2::Api
