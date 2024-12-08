@@ -18,10 +18,6 @@ Resources:
           AttributeType: S
         - AttributeName: username
           AttributeType: S
-        - AttributeName: first_name
-          AttributeType: S
-        - AttributeName: last_name
-          AttributeType: S
       KeySchema:
         - AttributeName: email_address
           KeyType: HASH
