@@ -1,0 +1,1 @@
+This project relies on a Cognito User Pool. For more information on the Cognito User Pool, check [this](https://github.com/bertybear/infra-user-access) repo.
