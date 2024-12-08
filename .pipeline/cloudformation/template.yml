@@ -14,6 +14,8 @@ Resources:
     Properties:
       TableName: !Sub ${Env}-${ProjectName}-user-profiles
       AttributeDefinitions:
+        - AttributeName: email_address
+          AttributeType: S
         - AttributeName: username
           AttributeType: S
         - AttributeName: first_name
@@ -21,7 +23,7 @@ Resources:
         - AttributeName: last_name
           AttributeType: S
       KeySchema:
-        - AttributeName: username
+        - AttributeName: email_address
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
