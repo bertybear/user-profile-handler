@@ -25,11 +25,9 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
-        - IndexName: !Sub ${Env}-${ProjectName}-index-user-profile
+        - IndexName: !Sub ${Env}-${ProjectName}-index-username
           KeySchema:
-            - AttributeName: first_name
+            - AttributeName: username
               KeyType: HASH
-            - AttributeName: last_name
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
