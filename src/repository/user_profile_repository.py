@@ -40,7 +40,7 @@ class UserProfileRepository:
         index_name = self.config.get('DEFAULT', 'user-profiles.dynamodb.table.username-index')
         index_name = replace_placeholders(index_name)
         
-        result = self.table.query(
+        result = self.dynamodb_table.query(
                     IndexName=index_name,
                     KeyConditionExpression=Key('username').eq(username)
                 )

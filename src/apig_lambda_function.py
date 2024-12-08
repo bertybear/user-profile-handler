@@ -11,7 +11,7 @@ app = APIGatewayHttpResolver()
 
 repository = UserProfileRepository()
 
-@app.get("/user-profile")
+@app.get("/api/v1/user-profile")
 def get_user_profile():
     auth_token = get_authorization_token()
 
