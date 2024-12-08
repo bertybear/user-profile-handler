@@ -1,4 +1,3 @@
-import json
 import jwt
 
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
@@ -20,8 +19,8 @@ def get_user_profile():
         decoded_token = jwt.decode(auth_token, options={"verify_signature": False})
         username = decoded_token.get("username")
 
-        user_profile = repository.find_by_cognito_username(username)
-        del user_profile['cognito_username']
+        user_profile = repository.find_by_username(username)
+        del user_profile['username']
 
         return user_profile
     except Exception as e:
