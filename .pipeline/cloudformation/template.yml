@@ -23,7 +23,7 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
-        - IndexName: !Sub ${Env}-${ProjectName}-index-username
+        - IndexName: !Sub ${Env}-${ProjectName}-user-profiles-index-username
           KeySchema:
             - AttributeName: username
               KeyType: HASH

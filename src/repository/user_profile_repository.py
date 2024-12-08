@@ -18,17 +18,17 @@ class UserProfileRepository:
         self.dynamodb_table = self.dynamodb.Table(self.dynamodb_table_name)
         
     def perform_insert(self,
+                       email_address: str,
                        username: str,
                        first_name: str,
                        last_name: str,
-                       email_address: str,
                        created_at: str = None):
         self.dynamodb_table.put_item(
                 Item={
+                    "email_address": email_address.lower(),
                     "username": username,
                     "first_name": first_name.title(),
                     "last_name": last_name.title(),
-                    "email_address": email_address.lower(),
                     "created_at": created_at or datetime.datetime.now().isoformat(),
                     "updated_at": datetime.datetime.now().isoformat(),
                     "connected_iot_device_ids": []
