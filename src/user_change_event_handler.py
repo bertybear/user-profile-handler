@@ -18,6 +18,8 @@ class LambdaHandler:
 
     def handle_event(self, event: Dict[str, object], context):
         
+        print("Received user change event")
+        
         message = json.loads(event['Records'][0]['Sns']['Message'])
         
         if(message.get('action') == 'INSERT'):

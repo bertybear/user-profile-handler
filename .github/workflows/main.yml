@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Configure environment variables
         run: |
           if [ "$BRANCH_NAME" = "main" ]; then
@@ -20,6 +23,10 @@ jobs:
             echo "ENV=dev" >> $GITHUB_ENV
           else
             echo "ENV=sandbox" >> $GITHUB_ENV
+            
+            # AWS
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           fi
 
           BUILD_TIMESTAMP=$(date +%Y%m%d%H%M%S)
@@ -27,9 +34,6 @@ jobs:
           
           echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
           echo "LAMBDA_ARCHIVE_FILENAME=$LAMBDA_ARCHIVE_FILENAME" >> $GITHUB_ENV
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Create Lambda archive
         run: |
@@ -40,12 +44,8 @@ jobs:
       - name: Upload Lambda archive
         run: |
           aws --region="ap-southeast-2" s3 cp "build/$LAMBDA_ARCHIVE_FILENAME" "s3://bertybear-lambda-versions-$ENV/$LAMBDA_ARCHIVE_FILENAME"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN:  ${{ secrets.AWS_SESSION_TOKEN }}
 
-      - name: Deploy Cloudformation Stack
+      - name: Deploy main resources
         run: |
           aws --region="ap-southeast-2" cloudformation deploy \
           --stack-name="${{ github.event.repository.name }}-${ENV}" \
@@ -54,10 +54,6 @@ jobs:
           ProjectName="bertybear-smart-nursery" \
           ServiceName="${{ github.event.repository.name }}" \
           Env="$ENV"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN:  ${{ secrets.AWS_SESSION_TOKEN }}
       
       - name: Deploy ApiGateway-Handler's Cloudformation Stack
         run: |
@@ -70,23 +66,15 @@ jobs:
           ServiceName="${{ github.event.repository.name }}" \
           Env="$ENV" \
           CodeBucket="bertybear-lambda-versions-$ENV" CodeFile="$LAMBDA_ARCHIVE_FILENAME"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN:  ${{ secrets.AWS_SESSION_TOKEN }}
 
-      - name: Deploy Sns-Handler's Cloudformation Stack
+      - name: Deploy user change event handler
         run: |
           aws --region="ap-southeast-2" cloudformation deploy \
-          --stack-name="sns-${{ github.event.repository.name }}-${ENV}" \
-          --template-file=".pipeline/cloudformation/sns-user-profile-handler.yml" \
+          --stack-name="${{ github.event.repository.name }}-${ENV}-user-change-event-handler" \
+          --template-file=".pipeline/cloudformation/user-change-event-handler.yml" \
           --capabilities CAPABILITY_NAMED_IAM \
           --parameter-overrides \
           ProjectName="bertybear-smart-nursery" \
           ServiceName="${{ github.event.repository.name }}" \
           Env="$ENV" \
           CodeBucket="bertybear-lambda-versions-$ENV" CodeFile="$LAMBDA_ARCHIVE_FILENAME"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN:  ${{ secrets.AWS_SESSION_TOKEN }}

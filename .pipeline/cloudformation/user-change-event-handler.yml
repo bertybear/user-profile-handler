@@ -47,7 +47,7 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource:
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-${ServiceName}-${Env}:*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ServiceName}-${Env}:*
       Roles:
         - !Ref IamRoleLambda
 
@@ -73,8 +73,8 @@ Resources:
   Lambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${ProjectName}-sns-${ServiceName}-${Env}
-      Handler: sns_lambda_function.lambda_handler
+      FunctionName: !Sub ${ServiceName}-${Env}-user-change-event-handler
+      Handler: user_change_event_handler.lambda_handler
       Architectures:
         - x86_64
       Runtime: python3.12
@@ -85,7 +85,7 @@ Resources:
       MemorySize: 128
       Timeout: 15
       LoggingConfig:
-        LogGroup: !Sub "/aws/lambda/${ProjectName}-${ServiceName}-${Env}"
+        LogGroup: !Sub "/aws/lambda/${ServiceName}-${Env}"
       Environment:
         Variables:
           AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
