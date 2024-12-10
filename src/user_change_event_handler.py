@@ -25,7 +25,7 @@ class LambdaHandler:
         if(message.get('action') == 'INSERT'):
             data = message.get("data")
             email_address = data.get('email_address')
-            username = data.get('user_id')
+            username = data.get('username')
             first_name = data.get('first_name')
             last_name = data.get('last_name')
             # we should then check if there's an existing (example a returning user)

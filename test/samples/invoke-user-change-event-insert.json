@@ -1,0 +1,9 @@
+{
+    "Records": [
+        {
+            "Sns": {
+                "Message": "{\"action\":\"INSERT\",\"data\":{\"username\":\"691e3428-4071-702d-50e8-7caa8fa372be\",\"first_name\":\"Eesa\",\"last_name\":\"Jacobs\",\"email_address\":\"eesa@allaboutapps.co.za\"}}"
+            }
+        }
+    ]
+}
