@@ -56,7 +56,7 @@ Resources:
   Api:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Sub ${ProjectName}-${ServiceName}-${Env}
+      Name: !Sub user-profile-${Env}
       ProtocolType: HTTP
       CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
       Target:
