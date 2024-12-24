@@ -24,7 +24,6 @@ def get_user_profile():
 
         return user_profile
     except Exception as e:
-        logger.error(f"Error retrieving identity pool ID: {str(e)}")
         return {"statusCode": 500, "body": "Internal Server Error"}
 
 def get_authorization_token():
