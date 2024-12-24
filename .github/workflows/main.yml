@@ -48,7 +48,7 @@ jobs:
       - name: Deploy user profile handler
         run: |
           aws --region="ap-southeast-2" cloudformation deploy \
-          --stack-name="apig-${{ github.event.repository.name }}-${ENV}" \
+          --stack-name="${{ github.event.repository.name }}-${ENV}" \
           --template-file=".pipeline/cloudformation/template.yml" \
           --capabilities CAPABILITY_NAMED_IAM \
           --parameter-overrides \
