@@ -11,7 +11,7 @@ class UserProfileRepository:
     def __init__(self):
         self.dynamodb = AmazonDynamoDbFactory()
         self.config = configparser.ConfigParser()
-        self.config.read('_config.properties')
+        self.config.read('app.config')
         
         self.dynamodb_table_name = self.config.get('DEFAULT', 'user-profiles.dynamodb.table.name')
         self.dynamodb_table_name = replace_placeholders(self.dynamodb_table_name)

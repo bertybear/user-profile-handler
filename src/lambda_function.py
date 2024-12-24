@@ -37,6 +37,7 @@ class LambdaHandler:
 
 def lambda_handler(event, context):
     try:
-        LambdaHandler().handle_event(event, context)
+        print(event)
+        # LambdaHandler().handle_event(event, context)
     except Exception as exception:
         raise exception

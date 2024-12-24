@@ -40,4 +40,5 @@ def get_authorization_token():
 
 
 def lambda_handler(event: dict, context: LambdaContext) -> dict:
+    print(event)
     return app.resolve(event, context)
