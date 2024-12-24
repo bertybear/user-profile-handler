@@ -61,7 +61,7 @@ Resources:
           - Effect: Allow
             Action:
               - dynamodb:GetItem
-              - dynamodb:QueryItem
+              - dynamodb:Query
               - dynamodb:PutItem
               - dynamodb:UpdateItem
             Resource:
@@ -110,7 +110,7 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       GlobalSecondaryIndexes:
-        - IndexName: !Sub ${Env}-${ProjectName}-user-profiles-index-username
+        - IndexName: !Sub username
           KeySchema:
             - AttributeName: username
               KeyType: HASH
