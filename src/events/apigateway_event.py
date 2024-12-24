@@ -20,10 +20,13 @@ def get_user_profile():
         username = decoded_token.get("username")
 
         user_profile = repository.find_by_username(username)
+        if user_profile is None:
+            return {}, 404
+            
         del user_profile['username']
-
         return user_profile
     except Exception as e:
+        print(e)
         return {"statusCode": 500, "body": "Internal Server Error"}
 
 def get_authorization_token():

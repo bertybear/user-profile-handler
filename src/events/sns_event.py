@@ -3,7 +3,6 @@ import logging
 import sys
 from typing import Dict
 
-from events.apigateway_event import apigateway_event_handler
 from repository.user_profile_repository import UserProfileRepository
 
 logging.basicConfig(stream=sys.stdout,
@@ -19,11 +18,9 @@ class SnsEventHandler:
 
     def handle_event(self, event: Dict[str, object], context):
         
-        print("Received user change event")
-        
         message = json.loads(event['Records'][0]['Sns']['Message'])
         
-        if(message.get('action') == 'INSERT'):
+        if(message.get('typeOfChange') == 'INSERT'):
             data = message.get("data")
             email_address = data.get('email_address')
             username = data.get('username')
