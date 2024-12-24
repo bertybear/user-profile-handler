@@ -57,14 +57,13 @@ jobs:
           Env="$ENV" \
           CodeBucket="bertybear-lambda-versions-$ENV" CodeFile="$LAMBDA_ARCHIVE_FILENAME"
 
-      # - name: Deploy user profile api
-      #   run: |
-      #     aws --region="ap-southeast-2" cloudformation deploy \
-      #     --stack-name="user-profile-api-resources-${ENV}" \
-      #     --template-file=".pipeline/cloudformation/api-resources.yml" \
-      #     --capabilities CAPABILITY_NAMED_IAM \
-      #     --parameter-overrides \
-      #     ProjectName="bertybear-smart-nursery" \
-      #     ServiceName="${{ github.event.repository.name }}" \
-      #     Env="$ENV" \
-      #     CodeBucket="bertybear-lambda-versions-$ENV" CodeFile="$LAMBDA_ARCHIVE_FILENAME"
+      - name: Deploy user profile api
+        run: |
+          aws --region="ap-southeast-2" cloudformation deploy \
+          --stack-name="user-profile-api-resources-${ENV}" \
+          --template-file=".pipeline/cloudformation/api-resources.yml" \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides \
+          ProjectName="bertybear-smart-nursery" \
+          ServiceName="${{ github.event.repository.name }}" \
+          Env="$ENV"
