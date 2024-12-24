@@ -95,10 +95,22 @@ Resources:
         ServiceName: !Ref ServiceName
         Environment: !Ref Env
 
+  SnsTopicUserChange:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${ProjectName}-user-change-${Env}
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: ServiceName
+          Value: !Ref ServiceName
+        - Key: Environment
+          Value: !Ref Env
+
   SnsSubscriptionLambda:
     Type: AWS::SNS::Subscription
     Properties:
-      TopicArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-user-change-event-${Env}"
+      TopicArn: !Ref SnsTopicUserChange
       Protocol: lambda
       Endpoint: !GetAtt Lambda.Arn
 
@@ -108,4 +120,4 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref Lambda
       Principal: sns.amazonaws.com
-      SourceArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-user-change-event-${Env}"
+      SourceArn: !Ref SnsTopicUserChange
