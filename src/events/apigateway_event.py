@@ -39,6 +39,5 @@ def get_authorization_token():
         return None
 
 
-def lambda_handler(event: dict, context: LambdaContext) -> dict:
-    print(event)
+def apigateway_event_handler(event: dict, context: LambdaContext) -> dict:
     return app.resolve(event, context)
