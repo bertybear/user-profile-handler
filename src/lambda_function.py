@@ -1,7 +1,5 @@
-from typing import Dict
-
-from events.apigateway_event import apigateway_event_handler
-from events.sns_event import sns_event_handler
+from events.apigateway_event_handler import apigateway_event_handler
+from events.sns_event_handler import sns_event_handler
 
 def lambda_handler(event, context):
     if 'routeKey' in event:

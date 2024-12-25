@@ -30,8 +30,7 @@ class UserProfileRepository:
                     "first_name": first_name.title(),
                     "last_name": last_name.title(),
                     "created_at": created_at or datetime.datetime.now().isoformat(),
-                    "updated_at": datetime.datetime.now().isoformat(),
-                    "connected_iot_device_ids": []
+                    "updated_at": datetime.datetime.now().isoformat()
                 }
             )
 
