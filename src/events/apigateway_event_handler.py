@@ -4,6 +4,7 @@ from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.utilities.typing.lambda_context import LambdaContext
 from aws_lambda_powertools import Logger
 
+from config.jwt_utils import get_username_from_headers
 from repository.user_profile_repository import UserProfileRepository
 
 logger = Logger()
@@ -13,32 +14,15 @@ repository = UserProfileRepository()
 
 @app.get("/api/v1/user-profile")
 def get_user_profile():
-    auth_token = get_authorization_token()
 
-    try:
-        decoded_token = jwt.decode(auth_token, options={"verify_signature": False})
-        username = decoded_token.get("username")
-
-        user_profile = repository.find_by_username(username)
-        if user_profile is None:
-            return {}, 404
+    username = get_username_from_headers(app.current_event.headers)
+        
+    user_profile = repository.find_by_username(username)
+    if user_profile is None:
+        return {}, 404
             
-        del user_profile['username']
-        return user_profile
-    except Exception as e:
-        print(e)
-        return {"statusCode": 500, "body": "Internal Server Error"}
-
-def get_authorization_token():
-    # Get the Authorization header
-    auth_header = app.current_event.headers.get("Authorization")
-    if auth_header:
-        # Extract the token (assuming Bearer token format)
-        token = auth_header.split(" ")[1] if " " in auth_header else auth_header
-        return token
-    else:
-        logger.warning("Authorization header not found")
-        return None
+    del user_profile['username']
+    return user_profile
 
 
 def apigateway_event_handler(event: dict, context: LambdaContext) -> dict:

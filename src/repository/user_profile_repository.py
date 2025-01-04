@@ -36,6 +36,8 @@ class UserProfileRepository:
 
     def find_by_username(self, username: str):
         
+        print(f"username: {username}")
+        
         index_name = self.config.get('DEFAULT', 'user-profiles.dynamodb.table.index.username')
         index_name = replace_placeholders(index_name)
         
