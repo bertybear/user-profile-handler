@@ -1,5 +1,7 @@
+import configparser
 import json
 import os
+import boto3
 import jwt
 
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
@@ -8,12 +10,17 @@ from aws_lambda_powertools import Logger
 
 from config.amazon_factory import AmazonSqsFactory
 from config.jwt_utils import get_username_from_headers
+from config.placeholder_utils import replace_placeholders
 from repository.user_profile_repository import UserProfileRepository
 
 logger = Logger()
 app = APIGatewayHttpResolver()
+sns_client = boto3.client('sns')
 
 repository = UserProfileRepository()
+
+config = configparser.ConfigParser()
+config.read('app.config')
 
 @app.get("/api/v1/user-profile")
 def get_user_profile():
@@ -37,6 +44,23 @@ def get_user_profile():
         return {}, 404
     
     repository.perform_delete(user_profile.get("email_address"))
+    
+    publish_sns_message('iot-device-member-change.sns.topic.arn', {
+        "typeOfChange": "DELETE",
+        "data": {
+            "username": user_profile["username"]
+        }
+    })
+        
+    
+def publish_sns_message(topic_config_key, message):
+    topic_arn = config.get('DEFAULT', topic_config_key)
+    topic_arn = replace_placeholders(topic_arn)
+    
+    sns_client.publish(
+        TopicArn=topic_arn,
+        Message=json.dumps(message)
+    )
 
 
 def apigateway_event_handler(event: dict, context: LambdaContext) -> dict:

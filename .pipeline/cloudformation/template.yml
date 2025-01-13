@@ -85,6 +85,21 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
+  IamPolicyAllowSnsPublishing:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IamPolicyAllowSnsPublishing
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sns:Publish
+            Resource:
+              - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-member-change-${Env}
+      Roles:
+        - !Ref IamRoleLambda
+
   SqsQueueDeadLetter:
     Type: AWS::SQS::Queue
     Properties:
