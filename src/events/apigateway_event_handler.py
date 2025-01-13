@@ -24,6 +24,17 @@ def get_user_profile():
     del user_profile['username']
     return user_profile
 
+@app.delete("/api/v1/user-profile")
+def get_user_profile():
+
+    username = get_username_from_headers(app.current_event.headers)
+        
+    user_profile = repository.find_by_username(username)
+    if user_profile is None:
+        return {}, 404
+    
+    repository.perform_delete(user_profile.get("email_address"))
+
 
 def apigateway_event_handler(event: dict, context: LambdaContext) -> dict:
     return app.resolve(event, context)

@@ -36,8 +36,6 @@ class UserProfileRepository:
 
     def find_by_username(self, username: str):
         
-        print(f"username: {username}")
-        
         index_name = self.config.get('DEFAULT', 'user-profiles.dynamodb.table.index.username')
         index_name = replace_placeholders(index_name)
         
@@ -50,9 +48,9 @@ class UserProfileRepository:
         
         return None
         
-    # def perform_delete(self, username: str):
-    #     self.table.delete_item(
-    #         Key={
-    #             'cognito_username': username
-    #         }
-    #     )
+    def perform_delete(self, email_address: str):
+        self.dynamodb_table.delete_item(
+            Key={
+                'email_address': email_address
+            }
+        )

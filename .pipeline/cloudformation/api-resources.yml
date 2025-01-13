@@ -99,3 +99,12 @@ Resources:
       Target: !Sub integrations/${ApiIntegration}
       AuthorizationType: JWT
       AuthorizerId: !Ref CognitoJWTAuthorizer
+
+  RouteDeleteUserProfile:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: DELETE /api/v1/user-profile
+      Target: !Sub integrations/${ApiIntegration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoJWTAuthorizer

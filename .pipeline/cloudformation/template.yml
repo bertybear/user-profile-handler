@@ -70,6 +70,25 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
+  IamPolicySqsAccess:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IamPolicySqsAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${ServiceName}-${Env}-dead-letter
+      Roles:
+        - !Ref IamRoleLambda
+
+  SqsQueueDeadLetter:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${ServiceName}-${Env}-dead-letter
+
   Lambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -87,6 +106,9 @@ Resources:
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
         - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-v3-12-jwt:1
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt SqsQueueDeadLetter.Arn
       Environment:
         Variables:
           AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
