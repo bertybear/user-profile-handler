@@ -113,6 +113,7 @@ Resources:
         Variables:
           AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
           ENV: !Ref Env
+          DEAD_LETTER_QUEUE_URL: !GetAtt SqsQueueDeadLetter.QueueUrl
       Tags:
         ProjectName: !Ref ProjectName
         ServiceName: !Ref ServiceName
