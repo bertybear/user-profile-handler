@@ -1,9 +1,12 @@
+import json
+import os
 import jwt
 
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.utilities.typing.lambda_context import LambdaContext
 from aws_lambda_powertools import Logger
 
+from config.amazon_factory import AmazonSqsFactory
 from config.jwt_utils import get_username_from_headers
 from repository.user_profile_repository import UserProfileRepository
 
@@ -37,4 +40,10 @@ def get_user_profile():
 
 
 def apigateway_event_handler(event: dict, context: LambdaContext) -> dict:
-    return app.resolve(event, context)
+    try:
+        return app.resolve(event, context)
+    except Exception as exception:
+        dead_letter_queue = AmazonSqsFactory().Queue(os.getenv('DEAD_LETTER_QUEUE_URL'))
+        dead_letter_queue.send_message(MessageBody=json.dumps(event))
+    
+        raise exception
