@@ -84,12 +84,13 @@ Resources:
   ApiMapping:
     Type: "AWS::ApiGatewayV2::ApiMapping"
     Properties:
+      ApiId: !Ref Api
+      Stage: !Ref Stage
+      ApiMappingKey: "user-profile"
       DomainName: !If
         - IsProd
         - "api.bertybear.com"
         - "api.sandbox.bertybear.com"
-      ApiId: !Ref Api
-      Stage: !Ref Stage
 
   ApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
