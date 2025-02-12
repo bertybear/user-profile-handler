@@ -10,6 +10,9 @@ Parameters:
   Env:
     Type: String
 
+Conditions:
+  IsProd: !Equals [!Ref Env, "prod"]
+
 Resources:
   IamRoleApiGatewayLambdaIntegration:
     Type: AWS::IAM::Role
@@ -59,8 +62,34 @@ Resources:
       Name: !Sub user-profile-${Env}
       ProtocolType: HTTP
       CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
+      DisableExecuteApiEndpoint: true
       Target:
         Fn::ImportValue: !Sub ${ServiceName}-arn-${Env}
+      Tags:
+        ProjectName: !Ref ProjectName
+        ServiceName: !Ref ServiceName
+        Environment: !Ref Env
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref Api
+      AutoDeploy: true
+      StageName: prod
+      Tags:
+        ProjectName: !Ref ProjectName
+        ServiceName: !Ref ServiceName
+        Environment: !Ref Env
+
+  ApiMapping:
+    Type: "AWS::ApiGatewayV2::ApiMapping"
+    Properties:
+      DomainName: !If
+        - IsProd
+        - "api.bertybear.com"
+        - "api.sandbox.bertybear.com"
+      ApiId: !Ref Api
+      Stage: !Ref Stage
 
   ApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
