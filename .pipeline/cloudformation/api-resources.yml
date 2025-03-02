@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Description: ...
+
+Parameters:
+  ProjectName:
+    Type: String
+  ServiceName:
+    Type: String
+  Env:
+    Type: String
+
+Conditions:
+  IsProd: !Equals [!Ref Env, "prod"]
+
+Resources:
+  IamRoleApiGatewayLambdaIntegration:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: ServiceName
+          Value: !Ref ServiceName
+        - Key: Environment
+          Value: !Ref Env
+
+  IamPolicyInvokeLambda:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IamPolicyInvokeLambda
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              Fn::ImportValue: !Sub ${ServiceName}-arn-${Env}
+      Roles:
+        - !Ref IamRoleApiGatewayLambdaIntegration
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      FunctionName:
+        Fn::ImportValue: !Sub ${ServiceName}-arn-${Env}
+
+  Api:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub user-profile-${Env}
+      ProtocolType: HTTP
+      CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
+      DisableExecuteApiEndpoint: true
+      Target:
+        Fn::ImportValue: !Sub ${ServiceName}-arn-${Env}
+      Tags:
+        ProjectName: !Ref ProjectName
+        ServiceName: !Ref ServiceName
+        Environment: !Ref Env
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref Api
+      AutoDeploy: true
+      StageName: prod
+      Tags:
+        ProjectName: !Ref ProjectName
+        ServiceName: !Ref ServiceName
+        Environment: !Ref Env
+
+  ApiMapping:
+    Type: "AWS::ApiGatewayV2::ApiMapping"
+    Properties:
+      ApiId: !Ref Api
+      Stage: !Ref Stage
+      ApiMappingKey: "user-profile"
+      DomainName: !If
+        - IsProd
+        - "api.bertybear.com"
+        - "api.sandbox.bertybear.com"
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref Api
+      IntegrationType: AWS_PROXY
+      PayloadFormatVersion: "2.0"
+      IntegrationUri: !Join
+        - ""
+        - - !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/"
+          - Fn::ImportValue: !Sub ${ServiceName}-arn-${Env}
+          - "/invocations"
+
+  CognitoJWTAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      Name: !Sub ${ProjectName}-${ServiceName}-${Env}
+      ApiId: !Ref Api
+      AuthorizerType: JWT
+      IdentitySource:
+        - "$request.header.Authorization"
+      IdentityValidationExpression: "^Bearer .+$"
+      JwtConfiguration:
+        Audience:
+          - Fn::ImportValue: !Sub "${ProjectName}-cognito-userpool-client-${Env}"
+        Issuer: !Join
+          - ""
+          - - !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/"
+            - Fn::ImportValue: !Sub "${ProjectName}-${Env}-cognito-userpoolid"
+
+  RouteGetUserProfile:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: GET /api/v1/user-profile
+      Target: !Sub integrations/${ApiIntegration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoJWTAuthorizer
+
+  RouteDeleteUserProfile:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: DELETE /api/v1/user-profile
+      Target: !Sub integrations/${ApiIntegration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoJWTAuthorizer

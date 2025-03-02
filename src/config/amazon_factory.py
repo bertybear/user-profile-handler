@@ -20,3 +20,13 @@ class AmazonDynamoDbFactory:
         return boto3.resource('dynamodb',
                               endpoint_url=endpoint,
                               region_name=region)
+
+class AmazonSqsFactory:
+
+    def __new__(cls, endpoint: str = None, region: str = None):
+        if endpoint is None or region is None:
+            return boto3.resource('sqs')
+
+        return boto3.resource('sqs',
+                              endpoint_url=endpoint,
+                              region_name=region)

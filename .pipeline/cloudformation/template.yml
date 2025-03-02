@@ -15,7 +15,7 @@ Parameters:
     Type: String
 
 Resources:
-  IamRoleApiLambda:
+  IamRoleLambda:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -26,44 +26,6 @@ Resources:
             Principal:
               Service:
                 - lambda.amazonaws.com
-      Tags:
-        - Key: ProjectName
-          Value: !Ref ProjectName
-        - Key: ServiceName
-          Value: !Ref ServiceName
-        - Key: Environment
-          Value: !Ref Env
-
-  IamRoleSnsLambda:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action: sts:AssumeRole
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Tags:
-        - Key: ProjectName
-          Value: !Ref ProjectName
-        - Key: ServiceName
-          Value: !Ref ServiceName
-        - Key: Environment
-          Value: !Ref Env
-
-  IamRoleApiGatewayLambdaIntegration:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action: sts:AssumeRole
-            Principal:
-              Service:
-                - apigateway.amazonaws.com
       Tags:
         - Key: ProjectName
           Value: !Ref ProjectName
@@ -85,10 +47,9 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Resource:
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-${ServiceName}-${Env}:*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ServiceName}-${Env}:*
       Roles:
-        - !Ref IamRoleApiLambda
-        - !Ref IamRoleSnsLambda
+        - !Ref IamRoleLambda
 
   IamPolicyDynamoDbTableUsers:
     Type: AWS::IAM::Policy
@@ -99,107 +60,131 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
+              - dynamodb:GetItem
               - dynamodb:Query
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles/*
       Roles:
-        - !Ref IamRoleApiLambda
+        - !Ref IamRoleLambda
 
-  IamPolicyInvokeApiLambda:
-    DependsOn:
-      - Lambda
+  IamPolicySqsAccess:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: IamPolicyInvokeApiLambda
+      PolicyName: IamPolicySqsAccess
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Action:
-              - lambda:InvokeFunction
-            Resource: !GetAtt LambdaApi.Arn
+              - sqs:SendMessage
+            Resource: !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${ServiceName}-${Env}-dead-letter
       Roles:
-        - !Ref IamRoleApiGatewayLambdaIntegration
+        - !Ref IamRoleLambda
 
-  LambdaApi:
+  IamPolicyAllowSnsPublishing:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IamPolicyAllowSnsPublishing
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sns:Publish
+            Resource:
+              - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-member-change-${Env}
+      Roles:
+        - !Ref IamRoleLambda
+
+  SqsQueueDeadLetter:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${ServiceName}-${Env}-dead-letter
+
+  Lambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${ProjectName}-${ServiceName}-${Env}
-      Handler: api_lambda_function.lambda_handler
+      FunctionName: !Sub ${ServiceName}-${Env}
+      Handler: lambda_function.lambda_handler
       Architectures:
         - x86_64
       Runtime: python3.12
       CodeUri:
         Bucket: !Ref CodeBucket
         Key: !Ref CodeFile
-      Role: !GetAtt IamRoleApiLambda.Arn
+      Role: !GetAtt IamRoleLambda.Arn
       MemorySize: 128
       Timeout: 15
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
-        - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-jwt:1
-      LoggingConfig:
-        LogGroup: /aws/lambda/${ProjectName}-${ServiceName}-${Env}
+        - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-v3-12-jwt:1
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt SqsQueueDeadLetter.Arn
       Environment:
         Variables:
           AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
           ENV: !Ref Env
+          DEAD_LETTER_QUEUE_URL: !GetAtt SqsQueueDeadLetter.QueueUrl
       Tags:
         ProjectName: !Ref ProjectName
         ServiceName: !Ref ServiceName
         Environment: !Ref Env
+
+  DynamoDbTableUserProfiles:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${Env}-${ProjectName}-user-profiles
+      AttributeDefinitions:
+        - AttributeName: email_address
+          AttributeType: S
+        - AttributeName: username
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email_address
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: !Sub username
+          KeySchema:
+            - AttributeName: username
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  SnsTopicUserChange:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${ProjectName}-user-change-${Env}
+      Tags:
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: ServiceName
+          Value: !Ref ServiceName
+        - Key: Environment
+          Value: !Ref Env
+
+  SnsSubscriptionLambda:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SnsTopicUserChange
+      Protocol: lambda
+      Endpoint: !GetAtt Lambda.Arn
 
   LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref Lambda
-      Principal: apigateway.amazonaws.com
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SnsTopicUserChange
 
-  # Api:
-  #   Type: AWS::ApiGatewayV2::Api
-  #   Properties:
-  #     Name: !Sub ${ProjectName}-${ServiceName}-${Env}
-  #     ProtocolType: HTTP
-  #     CredentialsArn: !GetAtt IamRoleApiGatewayLambdaIntegration.Arn
-  #     Target: !GetAtt LambdaApi.Arn
-
-  # ApiIntegration:
-  #   Type: AWS::ApiGatewayV2::Integration
-  #   Properties:
-  #     ApiId: !Ref Api
-  #     IntegrationType: AWS_PROXY
-  #     IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaApi.Arn}/invocations
-  #     PayloadFormatVersion: "2.0"
-
-  # CognitoJWTAuthorizer:
-  #   Type: AWS::ApiGatewayV2::Authorizer
-  #   Properties:
-  #     Name: !Sub ${ProjectName}-${ServiceName}-${Env}
-  #     ApiId: !Ref Api
-  #     AuthorizerType: JWT
-  #     IdentitySource:
-  #       - "$request.header.Authorization"
-  #     IdentityValidationExpression: "^Bearer .+$"
-  #     JwtConfiguration:
-  #       Audience:
-  #         - Fn::ImportValue: !Sub "${ProjectName}-cognito-userpool-client-${Env}"
-  #       Issuer: !Join
-  #         - ""
-  #         - - !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/"
-  #           - Fn::ImportValue: !Sub "${ProjectName}-${Env}-cognito-userpoolid"
-
-  # RouteGetUserProfile:
-  #   Type: AWS::ApiGatewayV2::Route
-  #   Properties:
-  #     ApiId: !Ref Api
-  #     RouteKey: GET /user-profile
-  #     Target: !Sub integrations/${ApiIntegration}
-  #     AuthorizationType: JWT
-  #     AuthorizerId: !Ref CognitoJWTAuthorizer
-# Outputs:
-#   LambdaArn:
-#     Description: "User profile handler's function ARN"
-#     Value: !GetAtt Lambda.Arn
-#     Export:
-#       Name: !Sub "${ProjectName}-${ServiceName}-lambda-${Env}"
+Outputs:
+  LambdaArnOutput:
+    Value: !GetAtt Lambda.Arn
+    Export:
+      Name: !Sub "${ServiceName}-arn-${Env}"
