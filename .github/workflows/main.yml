@@ -15,12 +15,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure BRANCH_NAME variable
+        run: |
+          echo "BRANCH_NAME=$(echo "$GITHUB_REF" | sed 's|refs/heads/||')" >> $GITHUB_ENV
+
       - name: Configure environment variables
         run: |
+          BUILD_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          LAMBDA_ARCHIVE_FILENAME="${{ github.event.repository.name }}-$BUILD_TIMESTAMP.zip"
+          
+          echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
+          echo "LAMBDA_ARCHIVE_FILENAME=$LAMBDA_ARCHIVE_FILENAME" >> $GITHUB_ENV
+
           if [ "$BRANCH_NAME" = "main" ]; then
             echo "ENV=prod" >> $GITHUB_ENV
-          elif [ "$BRANCH_NAME" = "develop" ]; then
-            echo "ENV=dev" >> $GITHUB_ENV
+            
+            # AWS
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.PRODUCTION_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PRODUCTION_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+            
           else
             echo "ENV=sandbox" >> $GITHUB_ENV
             
@@ -28,12 +41,6 @@ jobs:
             echo "AWS_ACCESS_KEY_ID=${{ secrets.SANDBOX_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.SANDBOX_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           fi
-
-          BUILD_TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          LAMBDA_ARCHIVE_FILENAME="${{ github.event.repository.name }}-$BUILD_TIMESTAMP.zip"
-          
-          echo "BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> $GITHUB_ENV
-          echo "LAMBDA_ARCHIVE_FILENAME=$LAMBDA_ARCHIVE_FILENAME" >> $GITHUB_ENV
 
       - name: Create Lambda archive
         run: |
