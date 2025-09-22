@@ -62,13 +62,9 @@ def save_push_token():
     body = app.current_event.json_body
     if body is None or 'token' not in body:
         return {"message": "Missing token in request body"}, 400
-        
-    user_profile = repository.find_by_user_id(user_id)
-    if user_profile is None:
-        return {}, 404
     
     token = body['token']
-    push_tokens = repository2.get_push_tokens(user_id)
+    push_tokens, created_at = repository2.get_push_tokens(user_id)
 
     if not isinstance(push_tokens, list):
         push_tokens = []
@@ -81,7 +77,7 @@ def save_push_token():
         'created_at': datetime.now().isoformat()
     })
     
-    repository2.save_push_tokens(user_id, push_tokens)
+    repository2.save_push_tokens(user_id, push_tokens, created_at)
     
     return {}, 204
         
