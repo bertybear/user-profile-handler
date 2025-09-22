@@ -51,25 +51,25 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
-  IamPolicyDynamoDbTableUsers:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: IamPolicyDynamoDbTableUsers
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - dynamodb:GetItem
-              - dynamodb:Query
-              - dynamodb:PutItem
-              - dynamodb:UpdateItem
-              - dynamodb:DeleteItem
-            Resource:
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
-              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles/*
-      Roles:
-        - !Ref IamRoleLambda
+  # IamPolicyDynamoDbTableUsers:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: IamPolicyDynamoDbTableUsers
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             - dynamodb:GetItem
+  #             - dynamodb:Query
+  #             - dynamodb:PutItem
+  #             - dynamodb:UpdateItem
+  #             - dynamodb:DeleteItem
+  #           Resource:
+  #             - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
+  #             - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles/*
+  #     Roles:
+  #       - !Ref IamRoleLambda
 
   IamPolicyDynamoDbReadWriteAccess:
     Type: AWS::IAM::Policy
@@ -115,20 +115,20 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
-  IamPolicyAllowSnsPublishing:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: IamPolicyAllowSnsPublishing
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - sns:Publish
-            Resource:
-              - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-member-change-${Env}
-      Roles:
-        - !Ref IamRoleLambda
+  # IamPolicyAllowSnsPublishing:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: IamPolicyAllowSnsPublishing
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             - sns:Publish
+  #           Resource:
+  #             - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-member-change-${Env}
+  #     Roles:
+  #       - !Ref IamRoleLambda
 
   SqsQueueDeadLetter:
     Type: AWS::SQS::Queue
@@ -214,57 +214,57 @@ Resources:
         - Key: Environment
           Value: !Ref Env
 
-  SnsSubscriptionLambda:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref SnsTopicUserChange
-      Protocol: lambda
-      Endpoint: !GetAtt Lambda.Arn
+  # SnsSubscriptionLambda:
+  #   Type: AWS::SNS::Subscription
+  #   Properties:
+  #     TopicArn: !Ref SnsTopicUserChange
+  #     Protocol: lambda
+  #     Endpoint: !GetAtt Lambda.Arn
 
-  SqsQueueIotDeviceChange:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub ${ServiceName}-${Env}-iot-device-change
+  # SqsQueueIotDeviceChange:
+  #   Type: AWS::SQS::Queue
+  #   Properties:
+  #     QueueName: !Sub ${ServiceName}-${Env}-iot-device-change
 
-  SqsQueuePolicyIotDeviceChange:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref SqsQueueIotDeviceChange
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal: "*"
-            Action: "sqs:SendMessage"
-            Resource: !GetAtt SqsQueueIotDeviceChange.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
+  # SqsQueuePolicyIotDeviceChange:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties:
+  #     Queues:
+  #       - !Ref SqsQueueIotDeviceChange
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal: "*"
+  #           Action: "sqs:SendMessage"
+  #           Resource: !GetAtt SqsQueueIotDeviceChange.Arn
+  #           Condition:
+  #             ArnEquals:
+  #               aws:SourceArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
 
-  SnsSubscriptionSqsIotDeviceChange:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Protocol: sqs
-      TopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
-      Endpoint: !GetAtt SqsQueueIotDeviceChange.Arn
-      RawMessageDelivery: true
+  # SnsSubscriptionSqsIotDeviceChange:
+  #   Type: AWS::SNS::Subscription
+  #   Properties:
+  #     Protocol: sqs
+  #     TopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
+  #     Endpoint: !GetAtt SqsQueueIotDeviceChange.Arn
+  #     RawMessageDelivery: true
 
-  LambdaPermissionIotDeviceChange:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt Lambda.Arn
-      Action: lambda:InvokeFunction
-      Principal: sqs.amazonaws.com
-      SourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
+  # LambdaPermissionIotDeviceChange:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     FunctionName: !GetAtt Lambda.Arn
+  #     Action: lambda:InvokeFunction
+  #     Principal: sqs.amazonaws.com
+  #     SourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
 
-  LambdaEventSourceMappingIotDeviceChange:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      EventSourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
-      FunctionName: !Ref Lambda
-      Enabled: true
-      BatchSize: 10
+  # LambdaEventSourceMappingIotDeviceChange:
+  #   Type: AWS::Lambda::EventSourceMapping
+  #   Properties:
+  #     EventSourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
+  #     FunctionName: !Ref Lambda
+  #     Enabled: true
+  #     BatchSize: 10
 
   IoTCoreRuleRegisterDevice:
     Type: AWS::IoT::TopicRule
