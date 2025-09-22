@@ -283,13 +283,13 @@ Resources:
       Principal: sns.amazonaws.com
       SourceArn: !Ref SnsTopicUserChange
 
-  LambdaPermissionInvokeByIoT:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref Lambda
-      Action: lambda:InvokeFunction
-      Principal: iot.amazonaws.com
-      SourceArn: !GetAtt IoTCoreRuleRegisterDevice.Arn
+  # LambdaPermissionInvokeByIoT:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     FunctionName: !Ref Lambda
+  #     Action: lambda:InvokeFunction
+  #     Principal: iot.amazonaws.com
+  #     SourceArn: !GetAtt IoTCoreRuleRegisterDevice.Arn
 
 Outputs:
   LambdaArnOutput:
