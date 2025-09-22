@@ -70,7 +70,7 @@ def save_push_token():
     if not isinstance(push_tokens, list):
         push_tokens = []
 
-    if any(push_token.get("token") == token for push_token in push_tokens):
+    if any(push_token.get("token") == token and push_token.get("platform") == platform for push_token in push_tokens):
         return {}, 203
     
     push_tokens.append({
