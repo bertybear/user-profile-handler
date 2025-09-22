@@ -17,7 +17,7 @@ class IotCoreEventHandler:
 
     def handle_event(self, event: Dict[str, object], context):
         device_id = event['device_id']
-        principal_id = event['principal_username']
+        principal_id = event['principal_id']
 
         self.repository.save_device_mapping(principal_id, device_id)
 
