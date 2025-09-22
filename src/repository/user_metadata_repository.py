@@ -43,6 +43,19 @@ class UserMetadataRepository:
             }
         )
         return response.get("Item", {}).get("entity_value", [])
+
+    def save_push_tokens(self, user_id: str, push_tokens: list):
+        self.dynamodb_table.update_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "PUSH_TOKENS"
+            },
+            UpdateExpression="SET entity_value = :push_tokens, updated_at = :updated_at",
+            ExpressionAttributeValues={
+                ':push_tokens': push_tokens,
+                ':updated_at': datetime.now().isoformat()
+            }
+        )
         
     def save_device_mapping(self, user_id, device_id, user_role="owner", user_status="active"):
         # get existing devices
