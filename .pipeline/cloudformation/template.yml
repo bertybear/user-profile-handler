@@ -94,17 +94,17 @@ Resources:
     Properties:
       QueueName: !Sub ${ServiceName}-${Env}-dead-letter
 
-  SnsTopicUserChange:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub ${ProjectName}-user-change-${Env}
-      Tags:
-        - Key: ProjectName
-          Value: !Ref ProjectName
-        - Key: ServiceName
-          Value: !Ref ServiceName
-        - Key: Environment
-          Value: !Ref Env
+  # SnsTopicUserChange:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     TopicName: !Sub ${ProjectName}-user-change-${Env}
+  #     Tags:
+  #       - Key: ProjectName
+  #         Value: !Ref ProjectName
+  #       - Key: ServiceName
+  #         Value: !Ref ServiceName
+  #       - Key: Environment
+  #         Value: !Ref Env
 
   DynamoDbTableUserProfiles:
     Type: AWS::DynamoDB::Table
@@ -173,12 +173,12 @@ Resources:
         ServiceName: !Ref ServiceName
         Environment: !Ref Env
 
-  SnsSubscriptionLambda:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref SnsTopicUserChange
-      Protocol: lambda
-      Endpoint: !GetAtt Lambda.Arn
+  # SnsSubscriptionLambda:
+  #   Type: AWS::SNS::Subscription
+  #   Properties:
+  #     TopicArn: !Ref SnsTopicUserChange
+  #     Protocol: lambda
+  #     Endpoint: !GetAtt Lambda.Arn
 
   IoTCoreRuleRegisterDevice:
     Type: AWS::IoT::TopicRule
@@ -195,13 +195,13 @@ Resources:
               FunctionArn: !GetAtt Lambda.Arn
         RuleDisabled: false
 
-  LambdaPermissionInvokeBySns:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref Lambda
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref SnsTopicUserChange
+  # LambdaPermissionInvokeBySns:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     FunctionName: !Ref Lambda
+  #     Principal: sns.amazonaws.com
+  #     SourceArn: !Ref SnsTopicUserChange
 
   LambdaPermissionInvokeByIoT:
     Type: AWS::Lambda::Permission
