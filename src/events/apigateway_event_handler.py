@@ -66,9 +66,6 @@ def save_push_token():
     token = body['token']
     platform = body['platform']
     push_tokens, created_at = repository2.get_push_tokens(user_id)
-    
-    print(push_tokens)
-    print(created_at)
 
     if not isinstance(push_tokens, list):
         push_tokens = []
