@@ -191,12 +191,12 @@ Resources:
     Properties:
       TableName: !Sub "${Env}-${ProjectName}-user-metadata"
       AttributeDefinitions:
-        - AttributeName: "device_id"
+        - AttributeName: "user_id"
           AttributeType: "S"
         - AttributeName: "entity_type"
           AttributeType: "S"
       KeySchema:
-        - AttributeName: "device_id"
+        - AttributeName: "user_id"
           KeyType: "HASH"
         - AttributeName: "entity_type"
           KeyType: "RANGE"
