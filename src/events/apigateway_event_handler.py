@@ -12,6 +12,7 @@ from aws_lambda_powertools import Logger
 from config.amazon_factory import AmazonSqsFactory
 from config.jwt_utils import get_username_from_headers
 from config.placeholder_utils import replace_placeholders
+from repository.user_metadata_repository import UserMetadataRepository
 from repository.user_profile_repository import UserProfileRepository
 
 logger = Logger()
@@ -19,6 +20,7 @@ app = APIGatewayHttpResolver()
 sns_client = boto3.client('sns')
 
 repository = UserProfileRepository()
+repository2 = UserMetadataRepository()
 
 config = configparser.ConfigParser()
 config.read('app.config')
@@ -54,38 +56,41 @@ def get_user_profile():
     })
 
 @app.patch("/api/v1/user-profile/push-token")
-def update_push_token():
+def save_push_token():
 
-    username = get_username_from_headers(app.current_event.headers)
+    user_id = get_username_from_headers(app.current_event.headers)
     
     body = app.current_event.json_body
     if body is None or 'token' not in body:
         return {"message": "Missing token in request body"}, 400
         
-    user_profile = repository.find_by_username(username)
+    user_profile = repository.find_by_user_id(user_id)
     if user_profile is None:
         return {}, 404
     
     token = body['token']
-    push_tokens = user_profile.get('push_tokens', [])
+    push_tokens = repository2.get_push_tokens(user_id)
 
     if not isinstance(push_tokens, list):
         push_tokens = []
 
-    # check if the token already exists in the list
-    for token_record in push_tokens:
-        if token_record['token'] == token:
-            token_record['updated_at'] = datetime.now().isoformat()
-            break
-    else:
-        # if the token does not exist, add it to the list
-        push_tokens.append({
-            'token': token,
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
-        })
+    if any(push_token.get("token") == token for push_token in push_tokens):
+        return {}, 203
 
-    repository.save_push_tokens(user_profile['email_address'], push_tokens)
+    # # check if the token already exists in the list
+    # for token_record in push_tokens:
+    #     if token_record['token'] == token:
+    #         token_record['updated_at'] = datetime.now().isoformat()
+    #         break
+    # else:
+    #     # if the token does not exist, add it to the list
+    #     push_tokens.append({
+    #         'token': token,
+    #         'created_at': datetime.now().isoformat(),
+    #         'updated_at': datetime.now().isoformat()
+    #     })
+
+    # repository.save_push_tokens(user_profile['email_address'], push_tokens)
     return {}, 204
         
     
