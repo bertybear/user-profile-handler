@@ -64,6 +64,7 @@ def save_push_token():
         return {"message": "Missing token in request body"}, 400
     
     token = body['token']
+    platform = body['platform']
     push_tokens, created_at = repository2.get_push_tokens(user_id)
 
     if not isinstance(push_tokens, list):
@@ -74,6 +75,7 @@ def save_push_token():
     
     push_tokens.append({
         'token': token,
+        'platform': platform,
         'created_at': datetime.now().isoformat()
     })
     
