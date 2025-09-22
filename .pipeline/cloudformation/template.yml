@@ -106,12 +106,6 @@ Resources:
             Action:
               - sqs:SendMessage
             Resource: !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${ServiceName}-${Env}-dead-letter
-          - Effect: Allow
-            Action:
-              - sqs:ReceiveMessage
-              - sqs:DeleteMessage
-              - sqs:GetQueueAttributes
-            Resource: !GetAtt SqsQueueIotDeviceChange.Arn
       Roles:
         - !Ref IamRoleLambda
 
