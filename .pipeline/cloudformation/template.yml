@@ -51,25 +51,19 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
-  # IamPolicyDynamoDbTableUsers:
-  #   Type: AWS::IAM::Policy
-  #   Properties:
-  #     PolicyName: IamPolicyDynamoDbTableUsers
-  #     PolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Action:
-  #             - dynamodb:GetItem
-  #             - dynamodb:Query
-  #             - dynamodb:PutItem
-  #             - dynamodb:UpdateItem
-  #             - dynamodb:DeleteItem
-  #           Resource:
-  #             - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles
-  #             - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Env}-${ProjectName}-user-profiles/*
-  #     Roles:
-  #       - !Ref IamRoleLambda
+  IamPolicySqsAccess:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IamPolicySqsAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt SqsQueueDeadLetter.Arn
+      Roles:
+        - !Ref IamRoleLambda
 
   IamPolicyDynamoDbReadWriteAccess:
     Type: AWS::IAM::Policy
@@ -95,69 +89,22 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
-  IamPolicySqsAccess:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: IamPolicySqsAccess
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              - sqs:SendMessage
-            Resource: !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${ServiceName}-${Env}-dead-letter
-      Roles:
-        - !Ref IamRoleLambda
-
-  # IamPolicyAllowSnsPublishing:
-  #   Type: AWS::IAM::Policy
-  #   Properties:
-  #     PolicyName: IamPolicyAllowSnsPublishing
-  #     PolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Action:
-  #             - sns:Publish
-  #           Resource:
-  #             - !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-member-change-${Env}
-  #     Roles:
-  #       - !Ref IamRoleLambda
-
   SqsQueueDeadLetter:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub ${ServiceName}-${Env}-dead-letter
 
-  Lambda:
-    Type: AWS::Serverless::Function
+  SnsTopicUserChange:
+    Type: AWS::SNS::Topic
     Properties:
-      FunctionName: !Sub ${ServiceName}-${Env}
-      Handler: lambda_function.lambda_handler
-      Architectures:
-        - x86_64
-      Runtime: python3.12
-      CodeUri:
-        Bucket: !Ref CodeBucket
-        Key: !Ref CodeFile
-      Role: !GetAtt IamRoleLambda.Arn
-      MemorySize: 128
-      Timeout: 15
-      Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
-        - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-v3-12-jwt:1
-      DeadLetterQueue:
-        Type: SQS
-        TargetArn: !GetAtt SqsQueueDeadLetter.Arn
-      Environment:
-        Variables:
-          AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
-          ENV: !Ref Env
-          DEAD_LETTER_QUEUE_URL: !GetAtt SqsQueueDeadLetter.QueueUrl
+      TopicName: !Sub ${ProjectName}-user-change-${Env}
       Tags:
-        ProjectName: !Ref ProjectName
-        ServiceName: !Ref ServiceName
-        Environment: !Ref Env
+        - Key: ProjectName
+          Value: !Ref ProjectName
+        - Key: ServiceName
+          Value: !Ref ServiceName
+        - Key: Environment
+          Value: !Ref Env
 
   DynamoDbTableUserProfiles:
     Type: AWS::DynamoDB::Table
@@ -196,17 +143,35 @@ Resources:
           KeyType: "RANGE"
       BillingMode: PAY_PER_REQUEST
 
-  SnsTopicUserChange:
-    Type: AWS::SNS::Topic
+  Lambda:
+    Type: AWS::Serverless::Function
     Properties:
-      TopicName: !Sub ${ProjectName}-user-change-${Env}
+      FunctionName: !Sub ${ServiceName}-${Env}
+      Handler: lambda_function.lambda_handler
+      Architectures:
+        - x86_64
+      Runtime: python3.12
+      CodeUri:
+        Bucket: !Ref CodeBucket
+        Key: !Ref CodeFile
+      Role: !GetAtt IamRoleLambda.Arn
+      MemorySize: 128
+      Timeout: 15
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-python312-x86_64:2
+        - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:python-v3-12-jwt:1
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt SqsQueueDeadLetter.Arn
+      Environment:
+        Variables:
+          AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
+          ENV: !Ref Env
+          DEAD_LETTER_QUEUE_URL: !GetAtt SqsQueueDeadLetter.QueueUrl
       Tags:
-        - Key: ProjectName
-          Value: !Ref ProjectName
-        - Key: ServiceName
-          Value: !Ref ServiceName
-        - Key: Environment
-          Value: !Ref Env
+        ProjectName: !Ref ProjectName
+        ServiceName: !Ref ServiceName
+        Environment: !Ref Env
 
   SnsSubscriptionLambda:
     Type: AWS::SNS::Subscription
@@ -214,51 +179,6 @@ Resources:
       TopicArn: !Ref SnsTopicUserChange
       Protocol: lambda
       Endpoint: !GetAtt Lambda.Arn
-
-  # SqsQueueIotDeviceChange:
-  #   Type: AWS::SQS::Queue
-  #   Properties:
-  #     QueueName: !Sub ${ServiceName}-${Env}-iot-device-change
-
-  # SqsQueuePolicyIotDeviceChange:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties:
-  #     Queues:
-  #       - !Ref SqsQueueIotDeviceChange
-  #     PolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal: "*"
-  #           Action: "sqs:SendMessage"
-  #           Resource: !GetAtt SqsQueueIotDeviceChange.Arn
-  #           Condition:
-  #             ArnEquals:
-  #               aws:SourceArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
-
-  # SnsSubscriptionSqsIotDeviceChange:
-  #   Type: AWS::SNS::Subscription
-  #   Properties:
-  #     Protocol: sqs
-  #     TopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
-  #     Endpoint: !GetAtt SqsQueueIotDeviceChange.Arn
-  #     RawMessageDelivery: true
-
-  # LambdaPermissionIotDeviceChange:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     FunctionName: !GetAtt Lambda.Arn
-  #     Action: lambda:InvokeFunction
-  #     Principal: sqs.amazonaws.com
-  #     SourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
-
-  # LambdaEventSourceMappingIotDeviceChange:
-  #   Type: AWS::Lambda::EventSourceMapping
-  #   Properties:
-  #     EventSourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
-  #     FunctionName: !Ref Lambda
-  #     Enabled: true
-  #     BatchSize: 10
 
   IoTCoreRuleRegisterDevice:
     Type: AWS::IoT::TopicRule
@@ -283,13 +203,13 @@ Resources:
       Principal: sns.amazonaws.com
       SourceArn: !Ref SnsTopicUserChange
 
-  # LambdaPermissionInvokeByIoT:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     FunctionName: !Ref Lambda
-  #     Action: lambda:InvokeFunction
-  #     Principal: iot.amazonaws.com
-  #     SourceArn: !GetAtt IoTCoreRuleRegisterDevice.Arn
+  LambdaPermissionInvokeByIoT:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Lambda
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      SourceArn: !GetAtt IoTCoreRuleRegisterDevice.Arn
 
 Outputs:
   LambdaArnOutput:
