@@ -35,6 +35,20 @@ class UserMetadataRepository:
                 }
             )
         
+    def get_profile(self, user_id: str):
+
+        result = self.dynamodb_table.get_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "PROFILE"
+            }
+        )
+        
+        if not result.get("Item"):
+            return None
+        
+        return result.get("Item", {}).get("entity_value", {})
+    
     def get_push_tokens(self, user_id: str):
         response = self.dynamodb_table.get_item(
             Key={
