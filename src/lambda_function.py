@@ -2,8 +2,14 @@ from events.apigateway_event_handler import apigateway_event_handler
 from events.sns_event_handler import sns_event_handler
 
 def lambda_handler(event, context):
-    print(event)
     if 'routeKey' in event:
         return apigateway_event_handler(event, context)
     elif 'Records' in event:
-        return sns_event_handler(event, context)
+        source = event['Records'][0].get('eventSource')
+        
+        if source == 'aws:sns':
+            return sns_event_handler(event, context)
+        elif source == 'aws:sqs':
+            print(event)
+        else:
+            raise ValueError(f"Unknown event source: {source}")

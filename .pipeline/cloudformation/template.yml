@@ -219,6 +219,14 @@ Resources:
       Principal: sqs.amazonaws.com
       SourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
 
+  LambdaEventSourceMappingIotDeviceChange:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
+      FunctionName: !Ref Lambda
+      Enabled: true
+      BatchSize: 10
+
 Outputs:
   LambdaArnOutput:
     Value: !GetAtt Lambda.Arn
