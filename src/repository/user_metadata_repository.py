@@ -35,6 +35,15 @@ class UserMetadataRepository:
                 }
             )
         
+    def get_push_tokens(self, user_id: str):
+        response = self.dynamodb_table.get_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "PUSH_TOKENS"
+            }
+        )
+        return response.get("Item", {}).get("entity_value", [])
+        
     def save_device_mapping(self, user_id, device_id, user_role="owner", user_status="active"):
         # get existing devices
         response = self.dynamodb_table.get_item(
