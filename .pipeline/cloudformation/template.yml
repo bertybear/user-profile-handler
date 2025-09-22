@@ -208,12 +208,12 @@ Resources:
         - Key: Environment
           Value: !Ref Env
 
-  # SnsSubscriptionLambda:
-  #   Type: AWS::SNS::Subscription
-  #   Properties:
-  #     TopicArn: !Ref SnsTopicUserChange
-  #     Protocol: lambda
-  #     Endpoint: !GetAtt Lambda.Arn
+  SnsSubscriptionLambda:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SnsTopicUserChange
+      Protocol: lambda
+      Endpoint: !GetAtt Lambda.Arn
 
   # SqsQueueIotDeviceChange:
   #   Type: AWS::SQS::Queue
