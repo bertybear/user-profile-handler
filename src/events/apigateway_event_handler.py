@@ -26,19 +26,18 @@ config = configparser.ConfigParser()
 config.read('app.config')
 
 @app.get("/api/v1/user-profile")
-def get_user_profile():
+def get_profile():
 
-    username = get_username_from_headers(app.current_event.headers)
-        
-    user_profile = repository.find_by_username(username)
+    user_id = get_username_from_headers(app.current_event.headers)
+
+    user_profile = repository2.get_profile(user_id)
     if user_profile is None:
         return {}, 404
             
-    del user_profile['username']
     return user_profile
 
 @app.delete("/api/v1/user-profile")
-def get_user_profile():
+def delete_profile():
 
     username = get_username_from_headers(app.current_event.headers)
         
