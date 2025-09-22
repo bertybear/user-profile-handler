@@ -13,5 +13,5 @@ def lambda_handler(event, context):
             return sns_event_handler(event, context)
         elif source == 'aws:sqs':
             return sqs_event_handler(event, context)
-        else:
-            return iotcore_event_handler(event, context)
+    else:
+        return iotcore_event_handler(event, context)
