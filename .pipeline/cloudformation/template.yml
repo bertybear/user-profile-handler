@@ -71,6 +71,30 @@ Resources:
       Roles:
         - !Ref IamRoleLambda
 
+  IamPolicyDynamoDbReadWriteAccess:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: IamPolicyDynamoDbReadWriteAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource:
+              - !Sub ${DynamoDBTableUserMetadata.Arn}
+              - !Sub ${DynamoDBTableUserMetadata.Arn}/*
+          - Effect: Allow
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+            Resource:
+              - !Sub ${DynamoDBTableUserMetadata.Arn}
+              - !Sub ${DynamoDBTableUserMetadata.Arn}/*
+      Roles:
+        - !Ref IamRoleLambda
+
   IamPolicySqsAccess:
     Type: AWS::IAM::Policy
     Properties:
@@ -162,6 +186,22 @@ Resources:
           Projection:
             ProjectionType: ALL
 
+  DynamoDBTableUserMetadata:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Env}-${ProjectName}-user-metadata"
+      AttributeDefinitions:
+        - AttributeName: "device_id"
+          AttributeType: "S"
+        - AttributeName: "entity_type"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "device_id"
+          KeyType: "HASH"
+        - AttributeName: "entity_type"
+          KeyType: "RANGE"
+      BillingMode: PAY_PER_REQUEST
+
   SnsTopicUserChange:
     Type: AWS::SNS::Topic
     Properties:
@@ -180,14 +220,6 @@ Resources:
       TopicArn: !Ref SnsTopicUserChange
       Protocol: lambda
       Endpoint: !GetAtt Lambda.Arn
-
-  LambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref Lambda
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref SnsTopicUserChange
 
   SqsQueueIotDeviceChange:
     Type: AWS::SQS::Queue
@@ -233,6 +265,37 @@ Resources:
       FunctionName: !Ref Lambda
       Enabled: true
       BatchSize: 10
+
+  IoTCoreRuleRegisterDevice:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      TopicRulePayload:
+        Description: "Invoked when a device registers itself via the provisioning process"
+        Sql: |
+          SELECT
+            topic(2) as device_id,
+            principal_id
+          FROM "bertybear/+/registration/accepted"
+        Actions:
+          - Lambda:
+              FunctionArn: !GetAtt Lambda.Arn
+        RuleDisabled: false
+
+  LambdaPermissionInvokeBySns:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Lambda
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SnsTopicUserChange
+
+  LambdaPermissionInvokeByIoT:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Lambda
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      SourceArn: !GetAtt IoTCoreRuleRegisterDevice.Arn
 
 Outputs:
   LambdaArnOutput:
