@@ -189,7 +189,7 @@ Resources:
   DynamoDBTableUserMetadata:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${Env}-${ProjectName}-user-metadata"
+      TableName: !Sub "${Env}-${ProjectName}-user-metadata-v2"
       AttributeDefinitions:
         - AttributeName: "user_id"
           AttributeType: "S"
