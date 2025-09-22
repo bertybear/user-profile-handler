@@ -180,6 +180,7 @@ Resources:
       TopicArn: !Ref SnsTopicUserChange
       Protocol: lambda
       Endpoint: !GetAtt Lambda.Arn
+      RawMessageDelivery: true
 
   LambdaPermission:
     Type: AWS::Lambda::Permission
