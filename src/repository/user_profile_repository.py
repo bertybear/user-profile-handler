@@ -1,5 +1,5 @@
 import configparser
-import datetime
+from datetime import datetime
 
 from boto3.dynamodb.conditions import Key
 from config.amazon_factory import AmazonDynamoDbFactory
@@ -29,8 +29,8 @@ class UserProfileRepository:
                     "username": username,
                     "first_name": first_name.title(),
                     "last_name": last_name.title(),
-                    "created_at": created_at or datetime.datetime.now().isoformat(),
-                    "updated_at": datetime.datetime.now().isoformat()
+                    "created_at": created_at or datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat()
                 }
             )
 
@@ -52,5 +52,17 @@ class UserProfileRepository:
         self.dynamodb_table.delete_item(
             Key={
                 'email_address': email_address
+            }
+        )
+        
+    def save_push_tokens(self, email_address: str, push_tokens: list):
+        self.dynamodb_table.update_item(
+            Key={
+                'email_address': email_address
+            },
+            UpdateExpression="SET push_tokens = :push_tokens, updated_at = :updated_at",
+            ExpressionAttributeValues={
+                ':push_tokens': push_tokens,
+                ':updated_at': datetime.now().isoformat()
             }
         )

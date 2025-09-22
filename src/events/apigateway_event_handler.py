@@ -57,34 +57,35 @@ def get_user_profile():
 def update_push_token():
 
     username = get_username_from_headers(app.current_event.headers)
+    
+    body = app.current_event.json_body
+    if body is None or 'token' not in body:
+        return {"message": "Missing token in request body"}, 400
         
     user_profile = repository.find_by_username(username)
     if user_profile is None:
         return {}, 404
     
-    body = app.current_event.json_body
-    if body is None or 'token' not in body:
-        return {"message": "Missing token in request body"}, 400
-    
     token = body['token']
+    push_tokens = user_profile.get('push_tokens', [])
 
-    if 'push_tokens' not in user_profile or not isinstance(user_profile['push_tokens'], list):
-        user_profile['push_tokens'] = []
-        
+    if not isinstance(push_tokens, list):
+        push_tokens = []
+
     # check if the token already exists in the list
-    for token_record in user_profile['push_tokens']:
+    for token_record in push_tokens:
         if token_record['token'] == token:
             token_record['updated_at'] = datetime.now().isoformat()
             break
     else:
         # if the token does not exist, add it to the list
-        user_profile['push_tokens'].append({
+        push_tokens.append({
             'token': token,
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat()
         })
 
-    repository.perform_update(user_profile)
+    repository.save_push_tokens(user_profile['email_address'], push_tokens)
     return {}, 204
         
     
