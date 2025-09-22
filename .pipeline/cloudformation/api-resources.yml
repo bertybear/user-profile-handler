@@ -138,3 +138,12 @@ Resources:
       Target: !Sub integrations/${ApiIntegration}
       AuthorizationType: JWT
       AuthorizerId: !Ref CognitoJWTAuthorizer
+
+  RoutePatchUserProfilePushToken:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: PATCH /api/v1/user-profile/push-token
+      Target: !Sub integrations/${ApiIntegration}
+      AuthorizationType: JWT
+      AuthorizerId: !Ref CognitoJWTAuthorizer
