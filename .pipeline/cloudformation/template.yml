@@ -188,7 +188,7 @@ Resources:
         Sql: |
           SELECT
             topic(2) as device_id,
-            principal_id
+            principal_username as principal_id
           FROM "bertybear/+/registration/accepted"
         Actions:
           - Lambda:
