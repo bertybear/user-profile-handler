@@ -56,9 +56,10 @@ class UserMetadataRepository:
                 "entity_type": "PUSH_TOKENS"
             }
         )
-        return response.get("Item", {}).get("entity_value", [])
+        
+        return response.get("Item", {}).get("entity_value", []), response.get("Item", {}).get("created_at", None)
 
-    def save_push_tokens(self, user_id: str, push_tokens: list):
+    def save_push_tokens(self, user_id: str, push_tokens: list, created_at: str = None):
         self.dynamodb_table.update_item(
             Key={
                 "user_id": user_id,
@@ -67,6 +68,7 @@ class UserMetadataRepository:
             UpdateExpression="SET entity_value = :push_tokens, updated_at = :updated_at",
             ExpressionAttributeValues={
                 ':push_tokens': push_tokens,
+                ':created_at': created_at or datetime.now().isoformat(),
                 ':updated_at': datetime.now().isoformat()
             }
         )
