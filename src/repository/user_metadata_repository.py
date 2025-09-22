@@ -18,9 +18,9 @@ class UserMetadataRepository:
         
     def create_profile(self,
                        user_id: str,
-                       email_address: str,
                        first_name: str,
-                       last_name: str):
+                       last_name: str,
+                       email_address: str):
         self.dynamodb_table.put_item(
                 Item={
                     "user_id": user_id,
