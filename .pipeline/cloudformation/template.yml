@@ -183,6 +183,42 @@ Resources:
       Principal: sns.amazonaws.com
       SourceArn: !Ref SnsTopicUserChange
 
+  SqsQueueIotDeviceChange:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub ${ServiceName}-${Env}-iot-device-change
+
+  SqsQueuePolicyIotDeviceChange:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref SqsQueueIotDeviceChange
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "sqs:SendMessage"
+            Resource: !GetAtt SqsQueueIotDeviceChange.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
+
+  SnsSubscriptionSqsIotDeviceChange:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      TopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
+      Endpoint: !GetAtt SqsQueueIotDeviceChange.Arn
+
+  LambdaPermissionIotDeviceChange:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt Lambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: sqs.amazonaws.com
+      SourceArn: !GetAtt SqsQueueIotDeviceChange.Arn
+
 Outputs:
   LambdaArnOutput:
     Value: !GetAtt Lambda.Arn
