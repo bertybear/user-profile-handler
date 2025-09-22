@@ -70,7 +70,7 @@ class UserMetadataRepository:
             UpdateExpression="SET entity_value = :push_tokens, updated_at = :updated_at",
             ExpressionAttributeValues={
                 ':push_tokens': push_tokens,
-                ':created_at': created_at or datetime.now().isoformat(),
+                ':created_at': created_at if created_at is not None else datetime.now().isoformat(),
                 ':updated_at': datetime.now().isoformat()
             }
         )
