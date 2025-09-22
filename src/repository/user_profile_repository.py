@@ -54,15 +54,3 @@ class UserProfileRepository:
                 'email_address': email_address
             }
         )
-        
-    def save_push_tokens(self, email_address: str, push_tokens: list):
-        self.dynamodb_table.update_item(
-            Key={
-                'email_address': email_address
-            },
-            UpdateExpression="SET push_tokens = :push_tokens, updated_at = :updated_at",
-            ExpressionAttributeValues={
-                ':push_tokens': push_tokens,
-                ':updated_at': datetime.now().isoformat()
-            }
-        )
