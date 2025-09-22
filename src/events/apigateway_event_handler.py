@@ -76,21 +76,14 @@ def save_push_token():
 
     if any(push_token.get("token") == token for push_token in push_tokens):
         return {}, 203
-
-    # # check if the token already exists in the list
-    # for token_record in push_tokens:
-    #     if token_record['token'] == token:
-    #         token_record['updated_at'] = datetime.now().isoformat()
-    #         break
-    # else:
-    #     # if the token does not exist, add it to the list
-    #     push_tokens.append({
-    #         'token': token,
-    #         'created_at': datetime.now().isoformat(),
-    #         'updated_at': datetime.now().isoformat()
-    #     })
-
-    # repository.save_push_tokens(user_profile['email_address'], push_tokens)
+    
+    push_tokens.append({
+        'token': token,
+        'created_at': datetime.now().isoformat()
+    })
+    
+    repository2.save_push_tokens(user_id, push_tokens)
+    
     return {}, 204
         
     
