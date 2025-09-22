@@ -180,7 +180,6 @@ Resources:
       TopicArn: !Ref SnsTopicUserChange
       Protocol: lambda
       Endpoint: !GetAtt Lambda.Arn
-      RawMessageDelivery: true
 
   LambdaPermission:
     Type: AWS::Lambda::Permission
@@ -217,6 +216,7 @@ Resources:
       Protocol: sqs
       TopicArn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-iot-device-change-${Env}
       Endpoint: !GetAtt SqsQueueIotDeviceChange.Arn
+      RawMessageDelivery: true
 
   LambdaPermissionIotDeviceChange:
     Type: AWS::Lambda::Permission
