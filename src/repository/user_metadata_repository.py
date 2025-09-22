@@ -59,7 +59,7 @@ class UserMetadataRepository:
         
         item = response.get("Item", {})
 
-        return item.get("entity_value", []), item.get("created_at", None)
+        return item.get("entity_value", []), item.get("created_at", datetime.now().isoformat())
 
     def save_push_tokens(self, user_id: str, push_tokens: list, created_at: str = None):
         self.dynamodb_table.update_item(
@@ -67,10 +67,10 @@ class UserMetadataRepository:
                 "user_id": user_id,
                 "entity_type": "PUSH_TOKENS"
             },
-            UpdateExpression="SET entity_value = :push_tokens, updated_at = :updated_at",
+            UpdateExpression="SET entity_value = :push_tokens, created_at = :created_at, updated_at = :updated_at",
             ExpressionAttributeValues={
                 ':push_tokens': push_tokens,
-                ':created_at': created_at if created_at is not None else datetime.now().isoformat(),
+                ':created_at': created_at,
                 ':updated_at': datetime.now().isoformat()
             }
         )
@@ -83,14 +83,17 @@ class UserMetadataRepository:
                 "entity_type": "DEVICES"
             }
         )
-        existing_devices = response.get("Item", {}).get("entity_value", [])
+
+        item = response.get("Item", {})
+
+        existing_devices = item.get("entity_value", [])
 
         # check if device already exists
         if any(device.get("device_id") == device_id for device in existing_devices):
             return
-        
-        created_at = response.get("Item", {}).get("created_at", datetime.now().isoformat())
-        
+
+        created_at = item.get("created_at", datetime.now().isoformat())
+
         self.dynamodb_table.update_item(
             Key={
                 "user_id": user_id,
