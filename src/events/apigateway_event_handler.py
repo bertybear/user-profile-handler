@@ -34,8 +34,6 @@ def get_profile():
     if profile is None:
         return {}, 404
 
-    profile["device_ids"] = list(map(lambda d: d["device_id"], repository2.get_devices(user_id)))
-
     return profile
 
 @app.delete("/api/v1/user-profile")
