@@ -34,7 +34,7 @@ def get_profile():
     if profile is None:
         return {}, 404
 
-    profile.devices = repository2.get_devices(user_id)
+    profile["device_ids"] = list(map(lambda d: d["device_id"], repository2.get_devices(user_id)))
 
     return profile
 
