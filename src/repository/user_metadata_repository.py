@@ -60,6 +60,16 @@ class UserMetadataRepository:
         item = response.get("Item", {})
 
         return item.get("entity_value", []), item.get("created_at", datetime.now().isoformat())
+    
+    def get_devices(self, user_id: str):
+        response = self.dynamodb_table.get_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "DEVICES"
+            }
+        )
+
+        return response.get("Item", {}).get("entity_value", [])
 
     def save_push_tokens(self, user_id: str, push_tokens: list, created_at: str = None):
         self.dynamodb_table.update_item(
