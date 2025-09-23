@@ -30,11 +30,13 @@ def get_profile():
 
     user_id = get_username_from_headers(app.current_event.headers)
 
-    user_profile = repository2.get_profile(user_id)
-    if user_profile is None:
+    profile = repository2.get_profile(user_id)
+    if profile is None:
         return {}, 404
-            
-    return user_profile
+
+    profile.devices = repository2.get_devices(user_id)
+
+    return profile
 
 @app.delete("/api/v1/user-profile")
 def delete_profile():
