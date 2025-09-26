@@ -1,9 +1,7 @@
 import configparser
-from datetime import datetime
 import json
 import os
 import boto3
-import jwt
 
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.utilities.typing.lambda_context import LambdaContext
@@ -19,13 +17,11 @@ app = APIGatewayHttpResolver()
 sns_client = boto3.client('sns')
 
 repository = UserMetadataRepository()
-
 config = configparser.ConfigParser()
 config.read('app.config')
 
 @app.get("/api/v1/user-profile")
 def get_profile():
-
     user_id = get_username_from_headers(app.current_event.headers)
 
     profile = repository.get_profile(user_id)
@@ -34,27 +30,14 @@ def get_profile():
 
     return profile
 
-# @app.delete("/api/v1/user-profile")
-# def delete_profile():
-
-#     username = get_username_from_headers(app.current_event.headers)
-        
-#     user_profile = repository.find_by_username(username)
-#     if user_profile is None:
-#         return {}, 404
-    
-#     repository.perform_delete(user_profile.get("email_address"))
-    
-#     publish_sns_message('iot-device-member-change.sns.topic.arn', {
-#         "typeOfChange": "DELETE",
-#         "data": {
-#             "username": user_profile["username"]
-#         }
-#     })
+@app.delete("/api/v1/user-profile")
+def delete_profile():
+    user_id = get_username_from_headers(app.current_event.headers)
+    repository.delete_profile(user_id)
+    return {}, 204
 
 @app.post("/api/v1/user-profile/push-token")
 def add_push_token():
-
     user_id = get_username_from_headers(app.current_event.headers)
     
     body = app.current_event.json_body

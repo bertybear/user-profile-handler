@@ -55,8 +55,16 @@ class UserMetadataRepository:
                 "entity_type": "VOLATILE_PROFILE"
             }
         )
-    
-    
+        
+        
+    # Delete the user profile from the DynamoDB table
+    def delete_profile(self, user_id: str):
+        self.dynamodb_table.delete_item(
+            Key={
+                "user_id": user_id
+            }
+        )
+
     # Initialize an empty devices list for the user
     def create_devices_map(self, user_id: str, devices = None):
         self.dynamodb_table.put_item(
