@@ -38,42 +38,17 @@ class DeviceMetadataRepository:
             
         users = [{**user, "device_id": item.get("device_id")} for item in users for user in item.get("entity_value", [])]
         return users
-        
     
-    def delete_user(self, device_id, user_id):
-        """
-        Deletes a user mapping from a device in the DynamoDB table.
-        """
-        
-        device_user_index = self._get_user_index(device_id, user_id)
-        if device_user_index is None:
-            return
-        
+    
+    def update_user(self, device_id, index, user):
         self.dynamodb_table.update_item(
             Key={
                 "device_id": device_id,
                 "entity_type": "USERS"
             },
-            UpdateExpression=f"REMOVE entity_value[{device_user_index}] SET updated_at = :updated_at",
+            UpdateExpression=f"SET entity_value[{index}] = :user, updated_at = :updated_at",
             ExpressionAttributeValues={
+                ":user": user,
                 ":updated_at": datetime.datetime.now().isoformat()
             }
         )
-    
-        
-    def _get_user_index(self, device_id, user_id):
-        """
-        Retrieves the index of a user in the device's user list.
-        """
-        users = self.dynamodb_table.get_item(
-            Key={
-                "device_id": device_id,
-                "entity_type": "USERS"
-            }
-        ).get("Item", {}).get("entity_value", [])
-
-        for index, user in enumerate(users):
-            if user.get("user_id").startswith(user_id) or user.get("user_id") == user_id:
-                return index
-
-        return None

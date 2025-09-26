@@ -4,7 +4,7 @@ import logging
 import sys
 from typing import Dict
 
-# from repository.device_metadata_repository import DeviceMetadataRepository
+from repository.device_metadata_repository import DeviceMetadataRepository
 from repository.user_metadata_repository import UserMetadataRepository
 
 logging.basicConfig(stream=sys.stdout,
@@ -17,7 +17,7 @@ class SnsEventHandler:
     def __init__(self):
         self.logger = logging.getLogger()
         self.user_repository = UserMetadataRepository()
-        # self.device_repository = DeviceMetadataRepository()
+        self.device_repository = DeviceMetadataRepository()
 
     def handle_event(self, event: Dict[str, object], context):
         
@@ -30,29 +30,29 @@ class SnsEventHandler:
             last_name = data.get('last_name')
             email_address = data.get('email_address')
 
+            existing_devices = self.user_repository.get_volatile_devices(email_address)
+
             self.user_repository.create_profile(user_id, first_name, last_name, email_address)
             self.user_repository.create_cognito_username_map(email_address, user_id)
             self.user_repository.create_push_tokens_map(user_id)
-            self.user_repository.create_devices_map(user_id, self.user_repository.get_volatile_devices(email_address))
-
-            # if not volatile_devices or len(volatile_devices) == 0:
-            #     self.user_repository.create_devices_map(user_id)
-            # else:
-            #     self.
-                # device_users = self.device_repository.batch_get_users(volatile_device_ids)
-                # device_users = [device_user for device_user in device_users if device_user.get("user_id") == email_address]
-                
-                # for device_user in device_users:
-                #     device_user["user_id"] = user_id
-                #     device_user["status"] = self._is_device_user_invitation_expired(device_user) and "invite_expired" or "active"
-
+            self.user_repository.create_devices_map(user_id, existing_devices)
+            
+            if existing_devices and len(existing_devices) > 0:
+                device_ids = [device.get("device_id") for device in existing_devices]
+                users = [user for user in self.device_repository.batch_get_users(device_ids)]
+                for index, user in enumerate(users):
+                    if user.get("user_id") == email_address:
+                        user["user_id"] = user_id
+                        user["status"] = self._is_device_user_invitation_expired(user) and "invite_expired" or "active"
+                        self.device_repository.update_user(user.get("device_id"), index, user)
+                        
             self.user_repository.delete_volatile_devices(email_address)
             self.user_repository.delete_volatile_profile(email_address)
             
-            
-    
-    def _is_device_user_invitation_expired(self, device_user) -> bool:
-        created_at = datetime.fromisoformat(device_user.get("created_at"))
+
+
+    def _is_device_user_invitation_expired(self, user) -> bool:
+        created_at = datetime.fromisoformat(user.get("created_at"))
         expires_at = created_at + timedelta(days=5)
 
         return expires_at < datetime.now()

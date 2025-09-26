@@ -9,7 +9,6 @@ def lambda_handler(event, context):
         return apigateway_event_handler(event, context)
     elif 'Records' in event:
         source = event['Records'][0].get('eventSource') or event['Records'][0].get('EventSource')
-        
         if source == 'aws:sns':
             return sns_event_handler(event, context)
         elif source == 'aws:sqs':
