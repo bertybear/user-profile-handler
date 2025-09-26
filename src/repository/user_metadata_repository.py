@@ -15,12 +15,9 @@ class UserMetadataRepository:
         self.dynamodb_table_name = self.config.get('DEFAULT', 'user-metadata.dynamodb.table.name')
         self.dynamodb_table_name = replace_placeholders(self.dynamodb_table_name)
         self.dynamodb_table = self.dynamodb.Table(self.dynamodb_table_name)
-        
-    def create_profile(self,
-                       user_id: str,
-                       first_name: str,
-                       last_name: str,
-                       email_address: str):
+
+    # Create a new user profile in the DynamoDB table
+    def create_profile(self, user_id: str, first_name: str, last_name: str, email_address: str):
         self.dynamodb_table.put_item(
                 Item={
                     "user_id": user_id,
@@ -35,8 +32,8 @@ class UserMetadataRepository:
                 }
             )
         
+    # Retrieve the user profile from the DynamoDB table
     def get_profile(self, user_id: str):
-
         result = self.dynamodb_table.get_item(
             Key={
                 "user_id": user_id,
@@ -48,7 +45,102 @@ class UserMetadataRepository:
             return None
         
         return result.get("Item", {}).get("entity_value", {})
+
+
+    # Delete the volatile user profile from the DynamoDB table
+    def delete_volatile_profile(self, user_id: str):
+        self.dynamodb_table.delete_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "VOLATILE_PROFILE"
+            }
+        )
     
+    
+    # Initialize an empty devices list for the user
+    def create_devices_map(self, user_id: str, devices = None):
+        self.dynamodb_table.put_item(
+                Item={
+                    "user_id": user_id,
+                    "entity_type": "DEVICES",
+                    "entity_value": devices or [],
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat()
+                }
+            )
+    
+    
+    # Retrieve the list of devices associated with the user
+    def get_devices(self, user_id: str):
+        response = self.dynamodb_table.get_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "DEVICES"
+            }
+        )
+        return response.get("Item", {}).get("entity_value", [])
+    
+    
+    # Retrieve the list of volatile devices associated with the user
+    def get_volatile_devices(self, user_id: str):
+        response = self.dynamodb_table.get_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "VOLATILE_DEVICES"
+            }
+        )
+        return response.get("Item", {}).get("entity_value", [])
+    
+    
+    # Add a new device to the user's device list if it doesn't already exist
+    def add_device(self, user_id, device_id):
+        existing_devices = self.get_devices(user_id)
+
+        # check if device already exists
+        if any(device.get("device_id") == device_id for device in existing_devices):
+            return
+
+        self.dynamodb_table.update_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "DEVICES"
+            },
+            UpdateExpression="SET entity_value = list_append(if_not_exists(entity_value, :empty_list), :new_device), updated_at = :updated_at",
+            ExpressionAttributeValues={
+                ":new_device": [{
+                    "device_id": device_id,
+                    "created_at": datetime.now().isoformat()
+                }],
+                ":empty_list": [],
+                ":updated_at": datetime.now().isoformat()
+            }
+        )
+        
+    
+    # Delete the volatile devices entry for the user
+    def delete_volatile_devices(self, user_id: str):
+        self.dynamodb_table.delete_item(
+            Key={
+                "user_id": user_id,
+                "entity_type": "VOLATILE_DEVICES"
+            }
+        )
+        
+        
+    # Initialize an empty push tokens list for the user
+    def create_push_tokens_map(self, user_id: str):
+        self.dynamodb_table.put_item(
+                Item={
+                    "user_id": user_id,
+                    "entity_type": "PUSH_TOKENS",
+                    "entity_value": [],
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat()
+                }
+            )
+    
+    
+    # Retrieve the list of push tokens associated with the user
     def get_push_tokens(self, user_id: str):
         response = self.dynamodb_table.get_item(
             Key={
@@ -58,67 +150,44 @@ class UserMetadataRepository:
         )
         
         item = response.get("Item", {})
+        return item.get("entity_value", [])
 
-        return item.get("entity_value", []), item.get("created_at", datetime.now().isoformat())
-    
-    def get_devices(self, user_id: str):
-        response = self.dynamodb_table.get_item(
-            Key={
-                "user_id": user_id,
-                "entity_type": "DEVICES"
-            }
-        )
 
-        return response.get("Item", {}).get("entity_value", [])
+    # Add a new push token to the user's push tokens list if it doesn't already exist
+    def add_push_token(self, user_id: str, push_token: str, platform: str):
+        # get existing push tokens
+        existing_push_tokens = self.get_push_tokens(user_id)
 
-    def save_push_tokens(self, user_id: str, push_tokens: list, created_at: str = None):
+        # check if push token already exists
+        if any(token.get("token") == push_token and token.get("platform") == platform for token in existing_push_tokens):
+            return
+        
         self.dynamodb_table.update_item(
             Key={
                 "user_id": user_id,
                 "entity_type": "PUSH_TOKENS"
             },
-            UpdateExpression="SET entity_value = :push_tokens, created_at = :created_at, updated_at = :updated_at",
+            UpdateExpression="SET entity_value = list_append(if_not_exists(entity_value, :empty_list), :new_token), updated_at = :updated_at",
             ExpressionAttributeValues={
-                ':push_tokens': push_tokens,
-                ':created_at': created_at,
+                ':new_token': [{
+                    "token": push_token,
+                    "platform": platform,
+                    "created_at": datetime.now().isoformat()
+                }],
+                ':empty_list': [],
                 ':updated_at': datetime.now().isoformat()
             }
         )
-        
-    def save_device_mapping(self, user_id, device_id, user_role="owner", user_status="active"):
-        # get existing devices
-        response = self.dynamodb_table.get_item(
-            Key={
-                "user_id": user_id,
-                "entity_type": "DEVICES"
-            }
-        )
 
-        item = response.get("Item", {})
-
-        existing_devices = item.get("entity_value", [])
-
-        # check if device already exists
-        if any(device.get("device_id") == device_id for device in existing_devices):
-            return
-
-        created_at = item.get("created_at", datetime.now().isoformat())
-
-        self.dynamodb_table.update_item(
-            Key={
-                "user_id": user_id,
-                "entity_type": "DEVICES"
-            },
-            UpdateExpression="SET entity_value = list_append(if_not_exists(entity_value, :empty_list), :new_device), created_at = :created_at, updated_at = :updated_at",
-            ExpressionAttributeValues={
-                ":new_device": [{
-                    "device_id": device_id,
-                    "role": user_role,
-                    "status": user_status,
-                    "created_at": datetime.now().isoformat()
-                }],
-                ":empty_list": [],
-                ":created_at": created_at,
-                ":updated_at": datetime.now().isoformat()
+    
+    # Create a mapping from email address to Cognito username
+    def create_cognito_username_map(self, email_address: str, cognito_username: str):
+        self.dynamodb_table.put_item(
+            Item={
+                "user_id": email_address.lower(),
+                "entity_type": "COGNITO_USERNAME",
+                "entity_value": cognito_username,
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
             }
         )

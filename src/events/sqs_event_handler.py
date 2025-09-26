@@ -3,7 +3,7 @@ import logging
 import sys
 from typing import Dict
 
-from repository.user_profile_repository import UserProfileRepository
+from repository.user_metadata_repository import UserMetadataRepository
 
 logging.basicConfig(stream=sys.stdout,
                     level=logging.INFO,
@@ -14,7 +14,7 @@ class SqsEventHandler:
 
     def __init__(self):
         self.logger = logging.getLogger()
-        self.repository = UserProfileRepository()
+        self.repository = UserMetadataRepository()
 
     def handle_event(self, event: Dict[str, object], context):
 

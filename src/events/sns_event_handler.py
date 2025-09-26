@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
 import json
 import logging
 import sys
 from typing import Dict
 
+# from repository.device_metadata_repository import DeviceMetadataRepository
 from repository.user_metadata_repository import UserMetadataRepository
 
 logging.basicConfig(stream=sys.stdout,
@@ -14,7 +16,8 @@ class SnsEventHandler:
 
     def __init__(self):
         self.logger = logging.getLogger()
-        self.repository = UserMetadataRepository()
+        self.user_repository = UserMetadataRepository()
+        # self.device_repository = DeviceMetadataRepository()
 
     def handle_event(self, event: Dict[str, object], context):
         
@@ -26,8 +29,33 @@ class SnsEventHandler:
             first_name = data.get('first_name')
             last_name = data.get('last_name')
             email_address = data.get('email_address')
+
+            self.user_repository.create_profile(user_id, first_name, last_name, email_address)
+            self.user_repository.create_cognito_username_map(email_address, user_id)
+            self.user_repository.create_push_tokens_map(user_id)
+            self.user_repository.create_devices_map(user_id, self.user_repository.get_volatile_devices(email_address))
+
+            # if not volatile_devices or len(volatile_devices) == 0:
+            #     self.user_repository.create_devices_map(user_id)
+            # else:
+            #     self.
+                # device_users = self.device_repository.batch_get_users(volatile_device_ids)
+                # device_users = [device_user for device_user in device_users if device_user.get("user_id") == email_address]
+                
+                # for device_user in device_users:
+                #     device_user["user_id"] = user_id
+                #     device_user["status"] = self._is_device_user_invitation_expired(device_user) and "invite_expired" or "active"
+
+            self.user_repository.delete_volatile_devices(email_address)
+            self.user_repository.delete_volatile_profile(email_address)
             
-            self.repository.create_profile(user_id, first_name, last_name, email_address)
+            
+    
+    def _is_device_user_invitation_expired(self, device_user) -> bool:
+        created_at = datetime.fromisoformat(device_user.get("created_at"))
+        expires_at = created_at + timedelta(days=5)
+
+        return expires_at < datetime.now()
 
 def sns_event_handler(event, context):
     try:

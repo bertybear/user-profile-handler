@@ -83,6 +83,7 @@ Resources:
             Action:
               - dynamodb:PutItem
               - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
             Resource:
               - !Sub ${DynamoDBTableUserMetadata.Arn}
               - !Sub ${DynamoDBTableUserMetadata.Arn}/*
@@ -187,6 +188,8 @@ Resources:
         Description: "Invoked when a device registers itself via the provisioning process"
         Sql: |
           SELECT
+            "aws:iot" as eventSource,
+            "CREATE_DEVICE_USER" as eventType,
             topic(2) as device_id,
             principal_id
           FROM "bertybear/+/registration/accepted"

@@ -16,10 +16,17 @@ class IotCoreEventHandler:
         self.repository = UserMetadataRepository()
 
     def handle_event(self, event: Dict[str, object], context):
-        device_id = event['device_id']
-        principal_id = event['principal_id']
+        event_type = event.get('eventType', None)
+        if event_type == 'CREATE_DEVICE_USER':
+            self.handle_create_device_user(event)
+        else:
+            self.logger.warning(f"Unknown event type: {event_type}")
 
-        self.repository.save_device_mapping(principal_id, device_id)
+    def handle_create_device_user(self, event: Dict[str, object]):
+        principal_id = event['principal_id']
+        device_id = event['device_id']
+
+        self.repository.add_device(principal_id, device_id)
 
 def iotcore_event_handler(event, context):
     try:
