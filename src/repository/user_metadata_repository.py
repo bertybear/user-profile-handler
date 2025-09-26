@@ -59,12 +59,21 @@ class UserMetadataRepository:
         
     # Delete the user profile from the DynamoDB table
     def delete_profile(self, user_id: str):
-        self.dynamodb_table.delete_item(
-            Key={
-                "user_id": user_id
-            }
-        )
+        profile = self.get_profile(user_id)
+        if not profile:
+            return
+            
+        keys = []
+        keys.append({"user_id": profile.get("email_address"), "entity_type": "COGNITO_USERNAME"})
+        keys.append({"user_id": user_id, "entity_type": "PROFILE"})
+        keys.append({"user_id": user_id, "entity_type": "DEVICES"})
+        keys.append({"user_id": user_id, "entity_type": "PUSH_TOKENS"})
+        
+        with self.dynamodb_table.batch_writer() as batch:
+            for key in keys:
+                batch.delete_item(Key=key)
 
+    
     # Initialize an empty devices list for the user
     def create_devices_map(self, user_id: str, devices = None):
         self.dynamodb_table.put_item(
