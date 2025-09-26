@@ -86,6 +86,7 @@ Resources:
             Action:
               - dynamodb:PutItem
               - dynamodb:DeleteItem
+              - dynamodb:BatchWriteItem
             Resource:
               - !Sub ${DynamoDBTableUserMetadata.Arn}
               - !Sub ${DynamoDBTableUserMetadata.Arn}/*
