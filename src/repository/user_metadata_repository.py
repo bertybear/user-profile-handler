@@ -177,6 +177,7 @@ class UserMetadataRepository:
 
         # check if push token already exists
         if any(token.get("token") == push_token and token.get("platform") == platform for token in existing_push_tokens):
+            print(f"Push token where platform ({platform}) already exists")
             return
         
         self.dynamodb_table.update_item(
